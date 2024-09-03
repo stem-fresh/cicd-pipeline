@@ -12,7 +12,7 @@ permissions:
 env:
   GCR_REPO_NAME: ${{ secrets.GCR_REPO_NAME }}
   DOCKER_TAR: "docker_image_${{ github.run_number }}.tar"
-  DOCKER_IMG_NAME: "iryscore"
+  DOCKER_IMG_NAME: "reactapp-img"
   PAT_GITHUB: ${{ secrets.PAT_GITHUB }}
 
 jobs:
@@ -101,9 +101,11 @@ jobs:
       - name: Checkout manifest repository
         uses: actions/checkout@v3
         with:
-          repository: stem-fresh/My-first-app-manifest
+          repository: stem-fresh/React-app-manifests
           token: ${{ secrets.PAT_GITHUB }}
           persist-credentials: false
+          # Checkout the correct branch based on the current branch
+          ref: ${{ github.ref_name }}
 
       - name: Update image tag in Kubernetes manifest
         run: |
@@ -115,7 +117,8 @@ jobs:
           git config --global user.name "GitHub Actions"
           git add deployment.yaml
           git commit -m "Updated image tag to ${{ github.run_number }}"
-          git push https://x-access-token:${{ secrets.PAT_GITHUB }}@github.com/stem-fresh/My-First-app-manifest.git HEAD:main
+          # Push changes to the same branch as the current one
+          git push https://x-access-token:${{ secrets.PAT_GITHUB }}@github.com/stem-fresh/React-app-manifests.git HEAD:${{ github.ref_name }}
 
   deploy-to-gke:
     runs-on: ubuntu-latest
@@ -126,10 +129,8 @@ jobs:
         with:
           credentials_json: $GCP_SA_KEY
 
-      - name: Set up kubectl
-        uses: azure/setup-kubectl@v3
-        with:
-          version: 'latest'
+      - name: Install kubectl
+        run: gcloud components install kubectl
 
       - name: Configure kubectl
         run: |
