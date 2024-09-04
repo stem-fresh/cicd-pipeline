@@ -19,14 +19,24 @@ jobs:
   set-env-vars:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Make set_env_vars.sh executable
-        run: chmod +x set_env_vars.sh
-
-      - name: Run set_env_vars.sh
-        run: ./set_env_vars.sh
+      - name: Set environment variables based on branch
+        run: |
+          if [[ "${{ github.ref }}" == "refs/heads/dev" ]]; then
+            echo "GCP_PROJECT_ID=${{ secrets.GCP_DEV_PROJECT_ID }}" >> $GITHUB_ENV
+            echo "GCP_SA_KEY=${{ secrets.GCP_DEV_SA_KEY }}" >> $GITHUB_ENV
+          elif [[ "${{ github.ref }}" == "refs/heads/qa" ]]; then
+            echo "GCP_PROJECT_ID=${{ secrets.GCP_QA_PROJECT_ID }}" >> $GITHUB_ENV
+            echo "GCP_SA_KEY=${{ secrets.GCP_QA_SA_KEY }}" >> $GITHUB_ENV
+          elif [[ "${{ github.ref }}" == "refs/heads/uat" ]]; then
+            echo "GCP_PROJECT_ID=${{ secrets.GCP_UAT_PROJECT_ID }}" >> $GITHUB_ENV
+            echo "GCP_SA_KEY=${{ secrets.GCP_UAT_SA_KEY }}" >> $GITHUB_ENV
+          elif [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            echo "GCP_PROJECT_ID=${{ secrets.GCP_PROD_PROJECT_ID }}" >> $GITHUB_ENV
+            echo "GCP_SA_KEY=${{ secrets.GCP_PROD_SA_KEY }}" >> $GITHUB_ENV
+          elif [[ "${{ github.ref }}" == "refs/heads/feature/ci-cd" ]]; then
+            echo "GCP_PROJECT_ID=${{ secrets.GCP_DEV_PROJECT_ID }}" >> $GITHUB_ENV
+            echo "GCP_SA_KEY=${{ secrets.GCP_DEV_SA_KEY }}" >> $GITHUB_ENV
+          fi
 
   checkout:
     runs-on: ubuntu-latest
