@@ -11,4 +11,3 @@ elif [[ "$GITHUB_REF" == "refs/heads/main" ]]; then
   echo "GCP_PROJECT_ID=${{ secrets.GCP_PROD_PROJECT_ID }}" >> $GITHUB_ENV
   echo "GCP_SA_KEY=${{ secrets.GCP_DEV_PROD_KEY }}" >> $GITHUB_ENV
 fi
-
