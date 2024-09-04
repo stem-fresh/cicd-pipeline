@@ -63,11 +63,11 @@ jobs:
         run: ls -al /home/runner/work/React-app  # List files in the correct directory
   
       - name: Install dependencies using pnpm
-        working-directory: /home/runner/work/React-app  # Use the correct directory
+      - working-directory: /home/runner/work/React-app  # Use the correct directory
         run: pnpm install
   
       - name: Audit dependencies using pnpm
-        working-directory: /home/runner/work/React-app  # Use the correct directory
+      - working-directory: /home/runner/work/React-app  # Use the correct directory
         run: pnpm audit --audit-level=moderate
 
 
