@@ -82,7 +82,7 @@ jobs:
         id: build
         run: |
           docker buildx build --platform linux/amd64 --output type=docker,dest=./$DOCKER_TAR \
-          --tag gcr.io/$GCP_PROJECT_ID/$GCR_REPO_NAME/$DOCKER_IMG_NAME:${{ github.run_number }} .
+          --tag gcr.io/${{secrets.GCP_PROJECT_ID}}/${{secrets.GCR_REPO_NAME}}/$DOCKER_IMG_NAME:${{ github.run_number }} .
 
       - name: Save Docker image as artifact
         uses: actions/upload-artifact@v3
