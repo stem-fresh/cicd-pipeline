@@ -52,16 +52,19 @@ jobs:
       - name: Install Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18' # Ensure you are using a Node.js version compatible with your project
+          node-version: '18'
   
       - name: Install pnpm
         run: npm install -g pnpm
   
-      - name: Install dependencies using pnpm
+      - name: Change to app directory
+        working-directory: ./frontend  # Update this to your directory
         run: pnpm install
   
       - name: Audit dependencies using pnpm
+        working-directory: ./  # Update this to your directory
         run: pnpm audit --audit-level=moderate
+
 
 
   build-docker-image:
