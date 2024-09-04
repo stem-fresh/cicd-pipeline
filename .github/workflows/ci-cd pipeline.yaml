@@ -58,7 +58,7 @@ jobs:
         run: npm install -g pnpm
   
       - name: Change to app directory
-        working-directory: ./frontend  # Update this to your directory
+        working-directory: ./  # Update this to your directory
         run: pnpm install
   
       - name: Audit dependencies using pnpm
