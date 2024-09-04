@@ -57,13 +57,17 @@ jobs:
       - name: Install pnpm
         run: npm install -g pnpm
   
-      - name: Change to app directory
-        working-directory: ./  # Update this to your directory
+      - name: List current directory files (for debugging)
+        run: ls -al /home/runner/work/React-app  # List files in the correct directory
+  
+      - name: Install dependencies using pnpm
+        working-directory: /home/runner/work/React-app  # Use the correct directory
         run: pnpm install
   
       - name: Audit dependencies using pnpm
-        working-directory: ./  # Update this to your directory
+        working-directory: /home/runner/work/React-app  # Use the correct directory
         run: pnpm audit --audit-level=moderate
+
 
 
 
