@@ -26,3 +26,5 @@ RUN pnpm run build
 EXPOSE 3000
 
 CMD ["pnpm", "run", "dev"]  # For development mode
+
+
