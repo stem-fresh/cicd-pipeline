@@ -26,21 +26,30 @@ jobs:
       - id: set-vars
         run: |
           if [[ "${{ github.ref }}" == "refs/heads/dev" ]]; then
+            echo "::add-mask::${{ secrets.GCP_DEV_PROJECT_ID }}"
+            echo "::add-mask::${{ secrets.GCP_DEV_SA_KEY }}"
             echo "::set-output name=GCP_PROJECT_ID::${{ secrets.GCP_DEV_PROJECT_ID }}"
             echo "::set-output name=GCP_SA_KEY::${{ secrets.GCP_DEV_SA_KEY }}"
           elif [[ "${{ github.ref }}" == "refs/heads/qa" ]]; then
+            echo "::add-mask::${{ secrets.GCP_QA_PROJECT_ID }}"
+            echo "::add-mask::${{ secrets.GCP_QA_SA_KEY }}"
             echo "::set-output name=GCP_PROJECT_ID::${{ secrets.GCP_QA_PROJECT_ID }}"
             echo "::set-output name=GCP_SA_KEY::${{ secrets.GCP_QA_SA_KEY }}"
           elif [[ "${{ github.ref }}" == "refs/heads/uat" ]]; then
+            echo "::add-mask::${{ secrets.GCP_UAT_PROJECT_ID }}"
+            echo "::add-mask::${{ secrets.GCP_UAT_SA_KEY }}"
             echo "::set-output name=GCP_PROJECT_ID::${{ secrets.GCP_UAT_PROJECT_ID }}"
             echo "::set-output name=GCP_SA_KEY::${{ secrets.GCP_UAT_SA_KEY }}"
           elif [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            echo "::add-mask::${{ secrets.GCP_PROD_PROJECT_ID }}"
+            echo "::add-mask::${{ secrets.GCP_PROD_SA_KEY }}"
             echo "::set-output name=GCP_PROJECT_ID::${{ secrets.GCP_PROD_PROJECT_ID }}"
             echo "::set-output name=GCP_SA_KEY::${{ secrets.GCP_PROD_SA_KEY }}"
           elif [[ "${{ github.ref }}" == "refs/heads/feature/cicd-pipeline" ]]; then
+            echo "::add-mask::${{ secrets.GCP_DEV_PROJECT_ID }}"
+            echo "::add-mask::${{ secrets.GCP_DEV_SA_KEY }}"
             echo "::set-output name=GCP_PROJECT_ID::${{ secrets.GCP_DEV_PROJECT_ID }}"
             echo "::set-output name=GCP_SA_KEY::${{ secrets.GCP_DEV_SA_KEY }}"
-
           fi
 
   checkout:
