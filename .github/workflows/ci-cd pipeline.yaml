@@ -27,11 +27,10 @@ jobs:
         run: |
           if [[ "$GITHUB_REF" == "refs/heads/dev" ]]; then
             echo "GCP_PROJECT_ID=${{ secrets.GCP_DEV_PROJECT_ID }}" >> $GITHUB_ENV
-            echo "GCP_SA_KEY<<EOF" >> $GITHUB_ENV
-            echo "${{ secrets.GCP_DEV_SA_KEY }}" >> $GITHUB_ENV
-            echo "EOF" >> $GITHUB_ENV
+            echo "GCP_SA_KEY<<EOF" >> $GITHUB_OUTPUT 
+            echo "${{ secrets.GCP_DEV_SA_KEY }}" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT 
             echo "GCP_PROJECT_ID=${{ secrets.GCP_DEV_PROJECT_ID }}" >> $GITHUB_OUTPUT
-            echo "GCP_SA_KEY=${{ secrets.GCP_DEV_SA_KEY }}" >> $GITHUB_OUTPUT
           elif [[ "$GITHUB_REF" == "refs/heads/main" ]]; then
             echo "GCP_PROJECT_ID=${{ secrets.GCP_PROD_PROJECT_ID }}" >> $GITHUB_ENV
             echo "GCP_SA_KEY<<EOF" >> $GITHUB_ENV
