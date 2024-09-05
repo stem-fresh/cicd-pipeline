@@ -30,22 +30,22 @@ jobs:
             echo "GCP_SA_KEY<<EOF" >> $GITHUB_ENV
             echo "${{ secrets.GCP_DEV_SA_KEY }}" >> $GITHUB_ENV
             echo "EOF" >> $GITHUB_ENV
-            echo "::set-output name=GCP_PROJECT_ID::${{ secrets.GCP_DEV_PROJECT_ID }}"
-            echo "::set-output name=GCP_SA_KEY::${{ secrets.GCP_DEV_SA_KEY }}"
+            echo "GCP_PROJECT_ID=${{ secrets.GCP_DEV_PROJECT_ID }}" >> $GITHUB_OUTPUT
+            echo "GCP_SA_KEY=${{ secrets.GCP_DEV_SA_KEY }}" >> $GITHUB_OUTPUT
           elif [[ "$GITHUB_REF" == "refs/heads/main" ]]; then
             echo "GCP_PROJECT_ID=${{ secrets.GCP_PROD_PROJECT_ID }}" >> $GITHUB_ENV
             echo "GCP_SA_KEY<<EOF" >> $GITHUB_ENV
             echo "${{ secrets.GCP_PROD_SA_KEY }}" >> $GITHUB_ENV
             echo "EOF" >> $GITHUB_ENV
-            echo "::set-output name=GCP_PROJECT_ID::${{ secrets.GCP_PROD_PROJECT_ID }}"
-            echo "::set-output name=GCP_SA_KEY::${{ secrets.GCP_PROD_SA_KEY }}"
+            echo "GCP_PROJECT_ID=${{ secrets.GCP_PROD_PROJECT_ID }}" >> $GITHUB_OUTPUT
+            echo "GCP_SA_KEY=${{ secrets.GCP_PROD_SA_KEY }}" >> $GITHUB_OUTPUT
           elif [[ "$GITHUB_REF" == "refs/heads/feature/cicd-pipeline" ]]; then
             echo "GCP_PROJECT_ID=${{ secrets.GCP_DEV_PROJECT_ID }}" >> $GITHUB_ENV
             echo "GCP_SA_KEY<<EOF" >> $GITHUB_ENV
             echo "${{ secrets.GCP_DEV_SA_KEY }}" >> $GITHUB_ENV
             echo "EOF" >> $GITHUB_ENV
-            echo "::set-output name=GCP_PROJECT_ID::${{ secrets.GCP_DEV_PROJECT_ID }}"
-            echo "::set-output name=GCP_SA_KEY::${{ secrets.GCP_DEV_SA_KEY }}"
+            echo "GCP_PROJECT_ID=${{ secrets.GCP_DEV_PROJECT_ID }}" >> $GITHUB_OUTPUT
+            echo "GCP_SA_KEY=${{ secrets.GCP_DEV_SA_KEY }}" >> $GITHUB_OUTPUT
           fi
 
       - name: Debug GCP_PROJECT_ID
