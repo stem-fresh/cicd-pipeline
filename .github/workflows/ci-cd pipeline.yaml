@@ -20,24 +20,26 @@ jobs:
   set-env-vars:
     runs-on: ubuntu-latest
     steps:
-      - id: set-vars
-        run: |
+      - run: |
           if [[ "$GITHUB_REF" == "refs/heads/dev" ]]; then
             echo "GCP_PROJECT_ID=${{ secrets.GCP_DEV_PROJECT_ID }}" >> $GITHUB_ENV
             echo "GCP_SA_KEY<<EOF" >> $GITHUB_ENV
             echo "${{ secrets.GCP_DEV_SA_KEY }}" >> $GITHUB_ENV
             echo "EOF" >> $GITHUB_ENV
-          elif [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+          elif [[ "$GITHUB_REF" == "refs/heads/main" ]]; then
             echo "GCP_PROJECT_ID=${{ secrets.GCP_PROD_PROJECT_ID }}" >> $GITHUB_ENV
             echo "GCP_SA_KEY<<EOF" >> $GITHUB_ENV
             echo "${{ secrets.GCP_PROD_SA_KEY }}" >> $GITHUB_ENV
             echo "EOF" >> $GITHUB_ENV
-          elif [[ "${{ github.ref }}" == "refs/heads/feature/cicd-pipeline" ]]; then
+          elif [[ "$GITHUB_REF" == "refs/heads/feature/cicd-pipeline" ]]; then
             echo "GCP_PROJECT_ID=${{ secrets.GCP_DEV_PROJECT_ID }}" >> $GITHUB_ENV
             echo "GCP_SA_KEY<<EOF" >> $GITHUB_ENV
             echo "${{ secrets.GCP_DEV_SA_KEY }}" >> $GITHUB_ENV
             echo "EOF" >> $GITHUB_ENV
           fi
+  
+      - name: Debug GCP_PROJECT_ID
+        run: echo "GCP_PROJECT_ID=${{ env.GCP_PROJECT_ID }}"
 
   checkout:
     runs-on: ubuntu-latest
