@@ -3,7 +3,7 @@ name: CI/CD Pipeline
 on:
   push:  
     branches:
-      - feature/cicd-pipeline           ${{ needs.set-env-vars.outputs.GCP_SA_KEY }}
+      - feature/cicd-pipeline           
       - dev
       # - main
 
@@ -40,6 +40,7 @@ jobs:
           elif [[ "${{ github.ref }}" == "refs/heads/feature/cicd-pipeline" ]]; then
             echo "::set-output name=GCP_PROJECT_ID::${{ secrets.GCP_DEV_PROJECT_ID }}"
             echo "::set-output name=GCP_SA_KEY::${{ secrets.GCP_DEV_SA_KEY }}"
+
           fi
 
   checkout:
