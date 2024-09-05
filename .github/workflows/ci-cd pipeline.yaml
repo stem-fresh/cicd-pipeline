@@ -24,16 +24,19 @@ jobs:
         run: |
           if [[ "${{ github.ref }}" == "refs/heads/dev" ]]; then
             echo "GCP_PROJECT_ID=${{ secrets.GCP_DEV_PROJECT_ID }}" >> $GITHUB_ENV
-            echo "GCP_SA_KEY=${{ secrets.GCP_DEV_SA_KEY }}" >> $GITHUB_ENV
-            echo "::add-mask::${{ secrets.GCP_DEV_SA_KEY }}"
+            echo "GCP_SA_KEY<<EOF" >> $GITHUB_ENV
+            echo "${{ secrets.GCP_DEV_SA_KEY }}" >> $GITHUB_ENV
+            echo "EOF" >> $GITHUB_ENV
           elif [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
             echo "GCP_PROJECT_ID=${{ secrets.GCP_PROD_PROJECT_ID }}" >> $GITHUB_ENV
-            echo "GCP_SA_KEY=${{ secrets.GCP_PROD_SA_KEY }}" >> $GITHUB_ENV
-            echo "::add-mask::${{ secrets.GCP_PROD_SA_KEY }}"
+            echo "GCP_SA_KEY<<EOF" >> $GITHUB_ENV
+            echo "${{ secrets.GCP_PROD_SA_KEY }}" >> $GITHUB_ENV
+            echo "EOF" >> $GITHUB_ENV
           elif [[ "${{ github.ref }}" == "refs/heads/feature/cicd-pipeline" ]]; then
             echo "GCP_PROJECT_ID=${{ secrets.GCP_DEV_PROJECT_ID }}" >> $GITHUB_ENV
-            echo "GCP_SA_KEY=${{ secrets.GCP_DEV_SA_KEY }}" >> $GITHUB_ENV
-            echo "::add-mask::${{ secrets.GCP_DEV_SA_KEY }}"
+            echo "GCP_SA_KEY<<EOF" >> $GITHUB_ENV
+            echo "${{ secrets.GCP_DEV_SA_KEY }}" >> $GITHUB_ENV
+            echo "EOF" >> $GITHUB_ENV
           fi
 
   checkout:
