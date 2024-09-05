@@ -24,29 +24,31 @@ jobs:
         run: |
           if [[ "${{ github.ref }}" == "refs/heads/dev" ]]; then
             echo "GCP_PROJECT_ID=${{ secrets.GCP_DEV_PROJECT_ID }}" >> $GITHUB_ENV
-            echo "GCP_SA_KEY=${{ secrets.GCP_DEV_SA_KEY }}" | base64 -d > /tmp/gcp_key.json
+            echo "${{ secrets.GCP_DEV_SA_KEY }}" > /tmp/gcp_key.json
             echo "GCP_SA_KEY_PATH=/tmp/gcp_key.json" >> $GITHUB_ENV
             echo "::add-mask::${{ secrets.GCP_DEV_SA_KEY }}"
           elif [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
             echo "GCP_PROJECT_ID=${{ secrets.GCP_PROD_PROJECT_ID }}" >> $GITHUB_ENV
-            echo "GCP_SA_KEY=${{ secrets.GCP_PROD_SA_KEY }}" | base64 -d > /tmp/gcp_key.json
+            echo "${{ secrets.GCP_PROD_SA_KEY }}" > /tmp/gcp_key.json
             echo "GCP_SA_KEY_PATH=/tmp/gcp_key.json" >> $GITHUB_ENV
             echo "::add-mask::${{ secrets.GCP_PROD_SA_KEY }}"
           elif [[ "${{ github.ref }}" == "refs/heads/feature/cicd-pipeline" ]]; then
             echo "GCP_PROJECT_ID=${{ secrets.GCP_DEV_PROJECT_ID }}" >> $GITHUB_ENV
-            echo "GCP_SA_KEY=${{ secrets.GCP_DEV_SA_KEY }}" | base64 -d > /tmp/gcp_key.json
+            echo "${{ secrets.GCP_DEV_SA_KEY }}" > /tmp/gcp_key.json
             echo "GCP_SA_KEY_PATH=/tmp/gcp_key.json" >> $GITHUB_ENV
             echo "::add-mask::${{ secrets.GCP_DEV_SA_KEY }}"
           fi
 
   checkout:
     runs-on: ubuntu-latest
+    needs: set-env-vars
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
   dependency-audit:
     runs-on: ubuntu-latest
+    needs: checkout
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -69,6 +71,7 @@ jobs:
 
   build-docker-image:
     runs-on: ubuntu-latest
+    needs: dependency-audit
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -90,6 +93,7 @@ jobs:
 
   push-docker-image:
     runs-on: ubuntu-latest
+    needs: build-docker-image
     steps:
       - name: Download Docker image
         uses: actions/download-artifact@v3
@@ -119,6 +123,7 @@ jobs:
 
   update-manifest:
     runs-on: ubuntu-latest
+    needs: push-docker-image
     steps:
       - name: Checkout manifest repository
         uses: actions/checkout@v3
@@ -142,6 +147,7 @@ jobs:
 
   deploy-to-gke:
     runs-on: ubuntu-latest
+    needs: update-manifest
     steps:
       - name: Authenticate with Google Cloud
         uses: google-github-actions/auth@v1
