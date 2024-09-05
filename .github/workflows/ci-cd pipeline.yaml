@@ -17,27 +17,27 @@ env:
   PAT_GITHUB: ${{ secrets.PAT_GITHUB }}
 
 jobs:
- set-env-vars:
-    runs-on: ubuntu-latest
-    outputs:
-      GCP_PROJECT_ID: ${{ steps.set-vars.outputs.GCP_PROJECT_ID }}
-      GCP_SA_KEY: ${{ steps.set-vars.outputs.GCP_SA_KEY }}
-    steps:
-      - id: set-vars
-        run: |
-          if [[ "${{ github.ref }}" == "refs/heads/dev" ]]; then
-            echo "::add-mask::${{ secrets.GCP_DEV_SA_KEY }}"
-            echo "::set-output name=GCP_PROJECT_ID::${{ secrets.GCP_DEV_PROJECT_ID }}"
-            echo "::set-output name=GCP_SA_KEY::${{ secrets.GCP_DEV_SA_KEY }}"
-          elif [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
-            echo "::add-mask::${{ secrets.GCP_PROD_SA_KEY }}"
-            echo "::set-output name=GCP_PROJECT_ID::${{ secrets.GCP_PROD_PROJECT_ID }}"
-            echo "::set-output name=GCP_SA_KEY::${{ secrets.GCP_PROD_SA_KEY }}"
-          elif [[ "${{ github.ref }}" == "refs/heads/feature/cicd-pipeline" ]]; then
-            echo "::add-mask::${{ secrets.GCP_DEV_SA_KEY }}"
-            echo "::set-output name=GCP_PROJECT_ID::${{ secrets.GCP_DEV_PROJECT_ID }}"
-            echo "::set-output name=GCP_SA_KEY::${{ secrets.GCP_DEV_SA_KEY }}"
-          fi
+  set-env-vars:
+      runs-on: ubuntu-latest
+      outputs:
+        GCP_PROJECT_ID: ${{ steps.set-vars.outputs.GCP_PROJECT_ID }}
+        GCP_SA_KEY: ${{ steps.set-vars.outputs.GCP_SA_KEY }}
+      steps:
+        - id: set-vars
+          run: |
+            if [[ "${{ github.ref }}" == "refs/heads/dev" ]]; then
+              echo "::add-mask::${{ secrets.GCP_DEV_SA_KEY }}"
+              echo "::set-output name=GCP_PROJECT_ID::${{ secrets.GCP_DEV_PROJECT_ID }}"
+              echo "::set-output name=GCP_SA_KEY::${{ secrets.GCP_DEV_SA_KEY }}"
+            elif [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+              echo "::add-mask::${{ secrets.GCP_PROD_SA_KEY }}"
+              echo "::set-output name=GCP_PROJECT_ID::${{ secrets.GCP_PROD_PROJECT_ID }}"
+              echo "::set-output name=GCP_SA_KEY::${{ secrets.GCP_PROD_SA_KEY }}"
+            elif [[ "${{ github.ref }}" == "refs/heads/feature/cicd-pipeline" ]]; then
+              echo "::add-mask::${{ secrets.GCP_DEV_SA_KEY }}"
+              echo "::set-output name=GCP_PROJECT_ID::${{ secrets.GCP_DEV_PROJECT_ID }}"
+              echo "::set-output name=GCP_SA_KEY::${{ secrets.GCP_DEV_SA_KEY }}"
+            fi
 
   checkout:
     runs-on: ubuntu-latest
