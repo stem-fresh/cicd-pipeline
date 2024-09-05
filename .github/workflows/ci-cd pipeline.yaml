@@ -37,9 +37,9 @@ jobs:
             echo "${{ secrets.GCP_DEV_SA_KEY }}" >> $GITHUB_ENV
             echo "EOF" >> $GITHUB_ENV
           fi
-  
+
       - name: Debug GCP_PROJECT_ID
-        run: echo "GCP_PROJECT_ID=${{ env.GCP_PROJECT_ID }}"
+        run: echo "GCP_PROJECT_ID=$GCP_PROJECT_ID"
 
   checkout:
     runs-on: ubuntu-latest
