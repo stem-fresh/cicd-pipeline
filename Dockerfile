@@ -7,8 +7,7 @@ RUN groupadd -g 1024 irysui && useradd -u 1025 -r -g irysui irysui
 # Install system dependencies
 RUN apt-get update && apt-get install -y vim git
 
-# Install pnpm using the specified command
-RUN curl -fsSL https://get.pnpm.io/install.sh | sh -
+RUN npm install -g pnpm
 
 # Set the working directory inside the container
 WORKDIR /app
