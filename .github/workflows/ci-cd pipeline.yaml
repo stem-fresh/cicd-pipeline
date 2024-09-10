@@ -163,7 +163,7 @@ jobs:
       - name: Authenticate with Google Cloud
         uses: google-github-actions/auth@v1  # Authenticating with Google Cloud
         with:
-          credentials_json: $GCP_DEV_SA_KEY
+          credentials_json: ${{env.GCP_DEV_SA_KEY}}
 
       - name: Install kubectl
         run: gcloud components install kubectl  # Installing kubectl to interact with GKE
