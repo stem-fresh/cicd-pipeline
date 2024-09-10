@@ -211,6 +211,7 @@ jobs:
 
   cleanup:
     runs-on: ubuntu-latest
+    needs: deploy-to-gke
     if: always()  # This job always runs, regardless of success or failure
     steps:
       - name: Clean up Docker images
