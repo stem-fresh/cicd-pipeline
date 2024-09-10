@@ -103,7 +103,9 @@ jobs:
     needs: build-docker-image  # Depends on the build-docker-image job
     steps:
       - name: Download Docker image
-        uses: actions/download-artifact@v3  # Downloading the Docker image artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: docker-image  # Downloading the Docker image artifact
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2  # Setting up Docker Buildx again
