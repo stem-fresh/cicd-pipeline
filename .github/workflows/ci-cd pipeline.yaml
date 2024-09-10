@@ -192,6 +192,7 @@ jobs:
           kubectl apply -f name_space.yaml -f deployment.yaml -f service.yaml -f hpa.yaml
 
       - name: Wait for Deployment to Complete
+        if: failure()
         run: kubectl rollout status deployment/${{ secrets.DEPLOYMENT_NAME }} --timeout=120s  # Waiting for the deployment to complete
 
       - name: Rollback if Deployment Fails
