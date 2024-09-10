@@ -109,7 +109,7 @@ jobs:
       - name: Authenticate with Google Cloud
         uses: google-github-actions/auth@v1  # Authenticating with Google Cloud using service account key
         with:
-          credentials_json: $GCP_DEV_SA_KEY
+          credentials_json: ${{env.GCP_DEV_SA_KEY}}
 
       - name: Configure Docker to use gcloud as a credential helper
         run: gcloud auth configure-docker  # Configuring Docker to use gcloud for authentication
