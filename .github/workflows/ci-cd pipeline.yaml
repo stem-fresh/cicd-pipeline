@@ -14,7 +14,7 @@ env:
   GCR_REPO_NAME: ${{ secrets.GCR_REPO_NAME }}  # Using secrets for GCR repository name
   DOCKER_TAR: "docker_image_${{ github.run_number }}.tar"  # Naming the docker image tar file with the run number
   DOCKER_IMG_NAME: "irys-ui-img"  # Setting the Docker image name
-
+  GCP_PROJECT_ID: ${{ secrets.GCP_DEV_PROJECT_ID }}
 
 jobs:
   set-env-vars:
@@ -27,23 +27,23 @@ jobs:
         run: |
           # Conditional check for branch to set environment variables
           if [[ "$GITHUB_REF" == "refs/heads/dev" ]]; then
-            echo "GCP_PROJECT_ID=${{ secrets.GCP_DEV_PROJECT_ID }}" >> $GITHUB_ENV
+            #echo "GCP_PROJECT_ID=${{ secrets.GCP_DEV_PROJECT_ID }}" >> $GITHUB_ENV
             echo "GCP_SA_KEY=$(echo '${{ secrets.GCP_DEV_SA_KEY }}' | jq -c .)" >> $GITHUB_ENV
-            echo "::set-output name=GCP_PROJECT_ID::${{ secrets.GCP_DEV_PROJECT_ID }}"
+            #echo "::set-output name=GCP_PROJECT_ID::${{ secrets.GCP_DEV_PROJECT_ID }}"
             echo "::set-output name=GCP_SA_KEY::$(echo '${{ secrets.GCP_DEV_SA_KEY }}' | jq -c .)"
           elif [[ "$GITHUB_REF" == "refs/heads/main" ]]; then
-            echo "GCP_PROJECT_ID=${{ secrets.GCP_DEV_PROJECT_ID }}" >> $GITHUB_ENV
+            #echo "GCP_PROJECT_ID=${{ secrets.GCP_DEV_PROJECT_ID }}" >> $GITHUB_ENV
             echo "GCP_SA_KEY=$(echo '${{ secrets.GCP_DEV_SA_KEY }}' | jq -c .)" >> $GITHUB_ENV
-            echo "::set-output name=GCP_PROJECT_ID::${{ secrets.GCP_DEV_PROJECT_ID }}"
+            #echo "::set-output name=GCP_PROJECT_ID::${{ secrets.GCP_DEV_PROJECT_ID }}"
             echo "::set-output name=GCP_SA_KEY::$(echo '${{ secrets.GCP_DEV_SA_KEY }}' | jq -c .)"
           elif [[ "$GITHUB_REF" == "refs/heads/feature/update" ]]; then
-            echo "GCP_PROJECT_ID=${{ secrets.GCP_DEV_PROJECT_ID }}" >> $GITHUB_ENV
+            #echo "GCP_PROJECT_ID=${{ secrets.GCP_DEV_PROJECT_ID }}" >> $GITHUB_ENV
             echo "GCP_SA_KEY=$(echo '${{ secrets.GCP_DEV_SA_KEY }}' | jq -c .)" >> $GITHUB_ENV
-            echo "::set-output name=GCP_PROJECT_ID::${{ secrets.GCP_DEV_PROJECT_ID }}"
+            #echo "::set-output name=GCP_PROJECT_ID::${{ secrets.GCP_DEV_PROJECT_ID }}"
             echo "::set-output name=GCP_SA_KEY::$(echo '${{ secrets.GCP_DEV_SA_KEY }}' | jq -c .)"
           fi
         env:
-          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+          #GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
           GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
 
       - name: Debug GCP_PROJECT_ID and GCP_SA_KEY
@@ -124,11 +124,11 @@ jobs:
           docker buildx build --platform linux/amd64 --output type=docker,dest=./$DOCKER_TAR \
           --cache-from type=local,src=/tmp/.buildx-cache \
           --cache-to type=local,dest=/tmp/.buildx-cache \
-          --tag gcr.io/${{ needs.set-env-vars.outputs.GCP_PROJECT_ID }}/$GCR_REPO_NAME/$DOCKER_IMG_NAME:${{ github.run_number }} .
+          --tag gcr.io/$GCP_PROJECT_ID/$GCR_REPO_NAME/$DOCKER_IMG_NAME:${{ github.run_number }} .
           
           # Tagging the image with the 'latest' tag
-          docker tag gcr.io/${{ needs.set-env-vars.outputs.GCP_PROJECT_ID }}/$GCR_REPO_NAME/$DOCKER_IMG_NAME:${{ github.run_number }} \
-          gcr.io/${{ needs.set-env-vars.outputs.GCP_PROJECT_ID }}/$GCR_REPO_NAME/$DOCKER_IMG_NAME:latest
+          docker tag gcr.io/$GCP_PROJECT_ID/$GCR_REPO_NAME/$DOCKER_IMG_NAME:${{ github.run_number }} \
+          gcr.io/$GCP_PROJECT_ID/$GCR_REPO_NAME/$DOCKER_IMG_NAME:latest
 
       - name: Save Docker image as artifact
         uses: actions/upload-artifact@v3  # Uploading the Docker image as an artifact for later jobs
@@ -160,15 +160,9 @@ jobs:
       - name: Tag and Push Docker image to GCR
         run: |
           # Tagging the Docker image with the build number and pushing to GCR
-          docker tag gcr.io/${{ needs.set-env-vars.outputs.GCP_PROJECT_ID }}/$GCR_REPO_NAME/$DOCKER_IMG_NAME:${{ github.run_number }} \
-          gcr.io/${{ needs.set-env-vars.outputs.GCP_PROJECT_ID }}/$GCR_REPO_NAME/$DOCKER_IMG_NAME:${{ github.run_number }}
-          
-          # Tagging the image as 'latest' and pushing it to GCR
-          docker tag gcr.io/${{ needs.set-env-vars.outputs.GCP_PROJECT_ID }}/$GCR_REPO_NAME/$DOCKER_IMG_NAME:${{ github.run_number }} \
-          gcr.io/${{ needs.set-env-vars.outputs.GCP_PROJECT_ID }}/$GCR_REPO_NAME/$DOCKER_IMG_NAME:latest
-
-          docker push gcr.io/${{ needs.set-env-vars.outputs.GCP_PROJECT_ID }}/$GCR_REPO_NAME/$DOCKER_IMG_NAME:${{ github.run_number }}
-          docker push gcr.io/${{ needs.set-env-vars.outputs.GCP_PROJECT_ID }}/$DOCKER_IMG_NAME:latest
+          docker tag gcr.io/$GCP_PROJECT_ID/$GCR_REPO_NAME/$DOCKER_IMG_NAME:${{ github.run_number }} \
+          gcr.io/$GCP_PROJECT_ID/$GCR_REPO_NAME/$DOCKER_IMG_NAME:${{ github.run_number }}
+          docker push gcr.io/$GCP_PROJECT_ID/$GCR_REPO_NAME/$DOCKER_IMG_NAME:${{ github.run_number }}
 
   update-manifest:
     runs-on: ubuntu-latest
@@ -185,7 +179,7 @@ jobs:
       - name: Update image tag in Kubernetes manifest
         run: |
           # Updating the image tag in the Kubernetes manifest
-          sed -i "s|image:.*|image: gcr.io/${{ needs.set-env-vars.outputs.GCP_PROJECT_ID }}/$GCR_REPO_NAME/$DOCKER_IMG_NAME:${{ github.run_number }}|g" deployment.yaml
+          sed -i "s|image:.*|image: gcr.io/$GCP_PROJECT_ID/$GCR_REPO_NAME/$DOCKER_IMG_NAME:${{ github.run_number }}|g" deployment.yaml
 
       - name: Commit and push updated manifest
         run: |
@@ -211,7 +205,7 @@ jobs:
       - name: Configure kubectl
         run: |
           # Configuring kubectl to interact with the GKE cluster
-          gcloud container clusters get-credentials ${{ secrets.CLUSTER_NAME }} --zone ${{ secrets.CLUSTER_ZONE }} --project ${{ needs.set-env-vars.outputs.GCP_PROJECT_ID }}
+          gcloud container clusters get-credentials ${{ secrets.CLUSTER_NAME }} --zone ${{ secrets.CLUSTER_ZONE }} --project $GCP_PROJECT_ID
 
       - name: Apply Kubernetes manifest
         run: |
