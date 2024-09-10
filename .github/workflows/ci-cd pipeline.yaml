@@ -19,7 +19,6 @@ env:
 jobs:
   checkout:
     runs-on: ubuntu-latest
-    needs: set-env-vars  # Depends on the set-env-vars job
     steps:
       - name: Checkout code
         uses: actions/checkout@v3  # Step to checkout the code from the repository
