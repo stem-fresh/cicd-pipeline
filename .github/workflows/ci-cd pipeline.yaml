@@ -115,7 +115,7 @@ jobs:
         run: gcloud auth configure-docker  # Configuring Docker to use gcloud for authentication
 
       - name: Load Docker image from artifact
-        run: docker load -i docker-image  # Loading the Docker image from the tar file
+        run: docker load -i ./${{ env.DOCKER_TAR }}  # Loading the Docker image from the tar file
 
       - name: Tag and Push Docker image to GCR
         run: |
