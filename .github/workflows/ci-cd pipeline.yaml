@@ -81,20 +81,22 @@ jobs:
         id: build
         run: |
           # Building the Docker image and saving it as a tar file
-          docker buildx build --platform linux/amd64 --output type=docker,dest=./$DOCKER_TAR \
+          docker buildx build --platform linux/amd64 --output type=docker,dest=./${{ env.DOCKER_TAR }} \
           --cache-from type=local,src=/tmp/.buildx-cache \
           --cache-to type=local,dest=/tmp/.buildx-cache \
           --tag gcr.io/$GCP_PROJECT_ID/$GCR_REPO_NAME/$DOCKER_IMG_NAME:${{ github.run_number }} .
-          
-          # Tagging the image
-          #docker tag gcr.io/$GCP_PROJECT_ID/$GCR_REPO_NAME/$DOCKER_IMG_NAME:${{ github.run_number }} \
-          #gcr.io/$GCP_PROJECT_ID/$GCR_REPO_NAME/$DOCKER_IMG_NAME:${{ github.run_number }}
+
+      - name: Debug build
+        run: docker buildx inspect --bootstrap
 
       - name: Save Docker image as artifact
         uses: actions/upload-artifact@v3  # Uploading the Docker image as an artifact for later jobs
         with:
           name: docker-image
           path: ./${{ env.DOCKER_TAR }}
+
+      - name: Check if Docker tar exists
+        run: ls -l ./${{ env.DOCKER_TAR }}
 
   push-docker-image:
     runs-on: ubuntu-latest
