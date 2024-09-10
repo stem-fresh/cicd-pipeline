@@ -26,20 +26,20 @@ jobs:
         run: |
           # Conditional check for branch to set environment variables
           if [[ "$GITHUB_REF" == "refs/heads/dev" ]]; then
-            echo "GCP_PROJECT_ID=${GCP_DEV_PROJECT_ID}" >> $GITHUB_ENV
-            echo "GCP_SA_KEY=${GCP_DEV_SA_KEY}" >> $GITHUB_ENV
+            echo "GCP_PROJECT_ID=${{ secrets.GCP_DEV_PROJECT_ID }}" >> $GITHUB_ENV
+            echo "GCP_SA_KEY=${{ secrets.GCP_DEV_SA_KEY }}" >> $GITHUB_ENV
           elif [[ "$GITHUB_REF" == "refs/heads/main" ]]; then
-            echo "GCP_PROJECT_ID=${GCP_PROD_PROJECT_ID}" >> $GITHUB_ENV
-            echo "GCP_SA_KEY=${GCP_PROD_SA_KEY}" >> $GITHUB_ENV
+            echo "GCP_PROJECT_ID=${{ secrets.GCP_DEV_PROJECT_ID }}" >> $GITHUB_ENV
+            echo "GCP_SA_KEY=${{ secrets.GCP_DEV_SA_KEY }}" >> $GITHUB_ENV
           elif [[ "$GITHUB_REF" == "refs/heads/feature/update" ]]; then
-            echo "GCP_PROJECT_ID=${GCP_DEV_PROJECT_ID}" >> $GITHUB_ENV
-            echo "GCP_SA_KEY=${GCP_DEV_SA_KEY}" >> $GITHUB_ENV
+            echo "GCP_PROJECT_ID=${{ secrets.GCP_DEV_PROJECT_ID }}" >> $GITHUB_ENV
+            echo "GCP_SA_KEY=${{ secrets.GCP_DEV_SA_KEY }}" >> $GITHUB_ENV
           fi
         env:
           GCP_DEV_PROJECT_ID: ${{ secrets.GCP_DEV_PROJECT_ID }}
           GCP_DEV_SA_KEY: ${{ secrets.GCP_DEV_SA_KEY }}
-          GCP_PROD_PROJECT_ID: ${{ secrets.GCP_PROD_PROJECT_ID }}
-          GCP_PROD_SA_KEY: ${{ secrets.GCP_PROD_SA_KEY }}
+          #GCP_PROD_PROJECT_ID: ${{ secrets.GCP_PROD_PROJECT_ID }}
+          #GCP_PROD_SA_KEY: ${{ secrets.GCP_PROD_SA_KEY }}
 
       - name: Debug GCP_PROJECT_ID
         run: printenv  # Debugging step to ensure the environment variables are set correctly
