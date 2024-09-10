@@ -38,9 +38,9 @@ jobs:
             echo "::set-output name=GCP_SA_KEY::$(echo '${{ secrets.GCP_DEV_SA_KEY }}' | jq -c .)"
           elif [[ "$GITHUB_REF" == "refs/heads/feature/update" ]]; then
             #echo "GCP_PROJECT_ID=${{ secrets.GCP_DEV_PROJECT_ID }}" >> $GITHUB_ENV
-            echo "GCP_SA_KEY=$(echo '${{ secrets.GCP_DEV_SA_KEY }}' | jq -c .)" >> $GITHUB_ENV
             #echo "::set-output name=GCP_PROJECT_ID::${{ secrets.GCP_DEV_PROJECT_ID }}"
-            echo "::set-output name=GCP_SA_KEY::$(echo '${{ secrets.GCP_DEV_SA_KEY }}' | jq -c .)"
+            echo "GCP_SA_KEY=$(echo '${{ secrets.GCP_DEV_SA_KEY }}' | jq -c .)" >> $GITHUB_OUTPUT
+            
           fi
         env:
           #GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
