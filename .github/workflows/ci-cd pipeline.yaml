@@ -15,47 +15,8 @@ env:
   DOCKER_TAR: "docker_image_${{ github.run_number }}.tar"  # Naming the docker image tar file with the run number
   DOCKER_IMG_NAME: "irys-ui-img"  # Setting the Docker image name
   GCP_PROJECT_ID: ${{ secrets.GCP_DEV_PROJECT_ID }}
-
+  GCP_DEV_SA_KEY: ${{ secrets.GCP_DEV_SA_KEY }}
 jobs:
-  set-env-vars:
-    runs-on: ubuntu-latest
-    outputs:
-      GCP_PROJECT_ID: ${{ steps.set-vars.outputs.GCP_PROJECT_ID }}  # Output for GCP project ID
-      GCP_SA_KEY: ${{ steps.set-vars.outputs.GCP_SA_KEY }}  # Output for GCP service account key
-    steps:
-      - id: set-vars
-        run: |
-          # Conditional check for branch to set environment variables
-          if [[ "$GITHUB_REF" == "refs/heads/dev" ]]; then
-            #echo "GCP_PROJECT_ID=${{ secrets.GCP_DEV_PROJECT_ID }}" >> $GITHUB_ENV
-            echo "GCP_SA_KEY=$(echo '${{ secrets.GCP_DEV_SA_KEY }}' | jq -c .)" >> $GITHUB_ENV
-            #echo "::set-output name=GCP_PROJECT_ID::${{ secrets.GCP_DEV_PROJECT_ID }}"
-            echo "::set-output name=GCP_SA_KEY::$(echo '${{ secrets.GCP_DEV_SA_KEY }}' | jq -c .)"
-          elif [[ "$GITHUB_REF" == "refs/heads/main" ]]; then
-            #echo "GCP_PROJECT_ID=${{ secrets.GCP_DEV_PROJECT_ID }}" >> $GITHUB_ENV
-            echo "GCP_SA_KEY=$(echo '${{ secrets.GCP_DEV_SA_KEY }}' | jq -c .)" >> $GITHUB_ENV
-            #echo "::set-output name=GCP_PROJECT_ID::${{ secrets.GCP_DEV_PROJECT_ID }}"
-            echo "::set-output name=GCP_SA_KEY::$(echo '${{ secrets.GCP_DEV_SA_KEY }}' | jq -c .)"
-          elif [[ "$GITHUB_REF" == "refs/heads/feature/update" ]]; then
-            #echo "GCP_PROJECT_ID=${{ secrets.GCP_DEV_PROJECT_ID }}" >> $GITHUB_ENV
-            echo "GCP_SA_KEY=$(echo '${{ secrets.GCP_DEV_SA_KEY }}' | jq -c .)" >> $GITHUB_ENV
-            #echo "::set-output name=GCP_PROJECT_ID::${{ secrets.GCP_DEV_PROJECT_ID }}"
-            echo "::set-output name=GCP_SA_KEY::$(echo '${{ secrets.GCP_DEV_SA_KEY }}' | jq -c .)"
-          fi
-        env:
-          #GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-          #GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
-
-      - name: Debug GCP_PROJECT_ID and GCP_SA_KEY
-        run: |
-          echo "GCP_PROJECT_ID=$GCP_PROJECT_ID"
-          echo "GCP_SA_KEY=$GCP_SA_KEY"
-        env:
-          GCP_PROJECT_ID: ${{ env.GCP_PROJECT_ID }}
-          GCP_SA_KEY: ${{ env.GCP_SA_KEY }}
-
-
-
   checkout:
     runs-on: ubuntu-latest
     needs: set-env-vars  # Depends on the set-env-vars job
@@ -149,7 +110,7 @@ jobs:
       - name: Authenticate with Google Cloud
         uses: google-github-actions/auth@v1  # Authenticating with Google Cloud using service account key
         with:
-          credentials_json: ${{ needs.set-env-vars.outputs.GCP_SA_KEY }}
+          credentials_json: $GCP_DEV_SA_KEY
 
       - name: Configure Docker to use gcloud as a credential helper
         run: gcloud auth configure-docker  # Configuring Docker to use gcloud for authentication
@@ -197,7 +158,7 @@ jobs:
       - name: Authenticate with Google Cloud
         uses: google-github-actions/auth@v1  # Authenticating with Google Cloud
         with:
-          credentials_json: ${{ needs.set-env-vars.outputs.GCP_SA_KEY }}
+          credentials_json: $GCP_DEV_SA_KEY
 
       - name: Install kubectl
         run: gcloud components install kubectl  # Installing kubectl to interact with GKE
