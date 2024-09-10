@@ -1,6 +1,7 @@
 # Use Node.js version 20+ as the base image
 FROM node:20
 
+
 # Create 'irysui' user and group
 RUN groupadd -g 1024 irysui && useradd -u 1025 -r -g irysui irysui
 
