@@ -15,6 +15,7 @@ env:
   DOCKER_TAR: "docker_image_${{ github.run_number }}.tar"  # Naming the docker image tar file with the run number
   DOCKER_IMG_NAME: "irys-ui-img"  # Setting the Docker image name
 
+
 jobs:
   set-env-vars:
     runs-on: ubuntu-latest
@@ -27,20 +28,25 @@ jobs:
           # Conditional check for branch to set environment variables
           if [[ "$GITHUB_REF" == "refs/heads/dev" ]]; then
             echo "GCP_PROJECT_ID=${{ secrets.GCP_DEV_PROJECT_ID }}" >> $GITHUB_ENV
-            echo "GCP_SA_KEY=${{ secrets.GCP_DEV_SA_KEY }}" >> $GITHUB_ENV
+            echo "GCP_SA_KEY=$(echo '${{ secrets.GCP_DEV_SA_KEY }}' | jq -c .)" >> $GITHUB_ENV
           elif [[ "$GITHUB_REF" == "refs/heads/main" ]]; then
             echo "GCP_PROJECT_ID=${{ secrets.GCP_DEV_PROJECT_ID }}" >> $GITHUB_ENV
-            echo "GCP_SA_KEY=${{ secrets.GCP_DEV_SA_KEY }}" >> $GITHUB_ENV
+            echo "GCP_SA_KEY=$(echo '${{ secrets.GCP_DEV_SA_KEY }}' | jq -c .)" >> $GITHUB_ENV
           elif [[ "$GITHUB_REF" == "refs/heads/feature/update" ]]; then
             echo "GCP_PROJECT_ID=${{ secrets.GCP_DEV_PROJECT_ID }}" >> $GITHUB_ENV
-            echo "GCP_SA_KEY=${{ secrets.GCP_DEV_SA_KEY }}" >> $GITHUB_ENV
+            echo "GCP_SA_KEY=$(echo '${{ secrets.GCP_DEV_SA_KEY }}' | jq -c .)" >> $GITHUB_ENV
           fi
         env:
           GCP_DEV_PROJECT_ID: ${{ secrets.GCP_DEV_PROJECT_ID }}
           GCP_DEV_SA_KEY: ${{ secrets.GCP_DEV_SA_KEY }}
 
-      - name: Debug GCP_PROJECT_ID
-        run: printenv  # Debugging step to ensure the environment variables are set correctly
+      - name: Debug GCP_PROJECT_ID and GCP_SA_KEY
+        run: |
+          echo "GCP_PROJECT_ID=$GCP_PROJECT_ID"
+          echo "GCP_SA_KEY=$GCP_SA_KEY"
+        env:
+          GCP_PROJECT_ID: ${{ env.GCP_PROJECT_ID }}
+          GCP_SA_KEY: ${{ env.GCP_SA_KEY }}
 
 
 
