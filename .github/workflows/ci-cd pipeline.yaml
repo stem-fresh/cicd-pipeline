@@ -3,159 +3,169 @@ name: CI/CD Pipeline
 on:
   push:  
     branches:
-      - feature/cicd-pipeline           
-      - dev
-      # - main
+      - feature/cicd-pipeline  # Pipeline triggers on push to the feature/cicd-pipeline branch
+      - dev                    # Pipeline triggers on push to the dev branch
+      # - main                 # Pipeline can also trigger on push to main branch (currently commented)
 
 permissions:
-  contents: read
+  contents: write  # Provides the necessary permissions for the pipeline to write contents
 
 env:
-  GCR_REPO_NAME: ${{ secrets.GCR_REPO_NAME }}
-  DOCKER_TAR: "docker_image_${{ github.run_number }}.tar"
-  DOCKER_IMG_NAME: "irys-ui-img"
-  PAT_GITHUB: ${{ secrets.PAT_GITHUB }}
+  GCR_REPO_NAME: ${{ secrets.GCR_REPO_NAME }}  # Using secrets for GCR repository name
+  DOCKER_TAR: "docker_image_${{ github.run_number }}.tar"  # Naming the docker image tar file with the run number
+  DOCKER_IMG_NAME: "irys-ui-img"  # Setting the Docker image name
 
 jobs:
   set-env-vars:
     runs-on: ubuntu-latest
     outputs:
-      GCP_PROJECT_ID: ${{ steps.set-vars.outputs.GCP_PROJECT_ID }}
-      GCP_SA_KEY: ${{ steps.set-vars.outputs.GCP_SA_KEY }}
+      GCP_PROJECT_ID: ${{ steps.set-vars.outputs.GCP_PROJECT_ID }}  # Output for GCP project ID
+      GCP_SA_KEY: ${{ steps.set-vars.outputs.GCP_SA_KEY }}  # Output for GCP service account key
     steps:
       - id: set-vars
         run: |
+          # Conditional check for branch to set environment variables
           if [[ "$GITHUB_REF" == "refs/heads/dev" ]]; then
             echo "GCP_PROJECT_ID=${{ secrets.GCP_DEV_PROJECT_ID }}" >> $GITHUB_ENV
-            echo "GCP_SA_KEY<<EOF" >> $GITHUB_OUTPUT 
-            echo "${{ secrets.GCP_DEV_SA_KEY }}" >> $GITHUB_OUTPUT
-            echo "EOF" >> $GITHUB_OUTPUT 
-            echo "GCP_PROJECT_ID=${{ secrets.GCP_DEV_PROJECT_ID }}" >> $GITHUB_OUTPUT
+            echo "GCP_SA_KEY=${{ secrets.GCP_DEV_SA_KEY }}" >> $GITHUB_ENV
           elif [[ "$GITHUB_REF" == "refs/heads/main" ]]; then
             echo "GCP_PROJECT_ID=${{ secrets.GCP_PROD_PROJECT_ID }}" >> $GITHUB_ENV
-            echo "GCP_SA_KEY<<EOF" >> $GITHUB_ENV
-            echo "${{ secrets.GCP_PROD_SA_KEY }}" >> $GITHUB_ENV
-            echo "EOF" >> $GITHUB_ENV
-            echo "GCP_PROJECT_ID=${{ secrets.GCP_PROD_PROJECT_ID }}" >> $GITHUB_OUTPUT
-            echo "GCP_SA_KEY=${{ secrets.GCP_PROD_SA_KEY }}" >> $GITHUB_OUTPUT
+            echo "GCP_SA_KEY=${{ secrets.GCP_PROD_SA_KEY }}" >> $GITHUB_ENV
           elif [[ "$GITHUB_REF" == "refs/heads/feature/cicd-pipeline" ]]; then
             echo "GCP_PROJECT_ID=${{ secrets.GCP_DEV_PROJECT_ID }}" >> $GITHUB_ENV
-            echo "GCP_SA_KEY<<EOF" >> $GITHUB_ENV
-            echo "${{ secrets.GCP_DEV_SA_KEY }}" >> $GITHUB_ENV
-            echo "EOF" >> $GITHUB_ENV
-            echo "GCP_PROJECT_ID=${{ secrets.GCP_DEV_PROJECT_ID }}" >> $GITHUB_OUTPUT
-            echo "GCP_SA_KEY=${{ secrets.GCP_DEV_SA_KEY }}" >> $GITHUB_OUTPUT
+            echo "GCP_SA_KEY=${{ secrets.GCP_DEV_SA_KEY }}" >> $GITHUB_ENV
           fi
 
       - name: Debug GCP_PROJECT_ID
-        run: printenv
+        run: printenv  # Debugging step to ensure the environment variables are set correctly
 
   checkout:
     runs-on: ubuntu-latest
-    needs: set-env-vars
+    needs: set-env-vars  # Depends on the set-env-vars job
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v3  # Step to checkout the code from the repository
 
   dependency-audit:
     runs-on: ubuntu-latest
-    needs: checkout
+    needs: checkout  # Depends on the checkout job
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v3  # Checking out code again for dependency auditing
+
       - name: Install Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v3  # Installing Node.js (version 18) for package management
         with:
           node-version: '18'
-  
+
       - name: Install pnpm
-        run: npm install -g pnpm
-  
-      - name: List current directory files (for debugging)
-        run: ls -al /home/runner/work/React-app
-  
+        run: npm install -g pnpm  # Installing pnpm globally
+
+      - name: Cache pnpm modules
+        uses: actions/cache@v3  # Caching pnpm dependencies for future runs
+        with:
+          path: ~/.pnpm-store
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-
+
       - name: Install dependencies using pnpm
-        run: pnpm install
-  
+        run: pnpm install  # Installing dependencies using pnpm
+
       - name: Audit dependencies using pnpm
-        run: pnpm audit --audit-level=low || true
+        run: pnpm audit --audit-level=low || true  # Auditing dependencies, allowing only low-level security issues
 
   build-docker-image:
     runs-on: ubuntu-latest
-    needs: dependency-audit
+    needs: dependency-audit  # Depends on the dependency-audit job
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: List all environment variables
-        run: printenv
+        uses: actions/checkout@v3  # Checking out the code for building the Docker image
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v2  # Setting up Docker Buildx for multi-platform builds
 
-      - name: Debug GCP_PROJECT_ID
-        run: echo "GCP_PROJECT_ID=${{ needs.set-env-vars.outputs.GCP_PROJECT_ID }}"
+      - name: Cache Docker layers
+        uses: actions/cache@v3  # Caching Docker build layers for efficiency
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
 
       - name: Build Docker image
         id: build
         run: |
+          # Building the Docker image and saving it as a tar file
           docker buildx build --platform linux/amd64 --output type=docker,dest=./$DOCKER_TAR \
+          --cache-from type=local,src=/tmp/.buildx-cache \
+          --cache-to type=local,dest=/tmp/.buildx-cache \
           --tag gcr.io/${{ needs.set-env-vars.outputs.GCP_PROJECT_ID }}/$GCR_REPO_NAME/$DOCKER_IMG_NAME:${{ github.run_number }} .
+          
+          # Tagging the image with the 'latest' tag
+          docker tag gcr.io/${{ needs.set-env-vars.outputs.GCP_PROJECT_ID }}/$GCR_REPO_NAME/$DOCKER_IMG_NAME:${{ github.run_number }} \
+          gcr.io/${{ needs.set-env-vars.outputs.GCP_PROJECT_ID }}/$GCR_REPO_NAME/$DOCKER_IMG_NAME:latest
 
       - name: Save Docker image as artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v3  # Uploading the Docker image as an artifact for later jobs
         with:
           name: docker-image
           path: ./${{ env.DOCKER_TAR }}
 
   push-docker-image:
     runs-on: ubuntu-latest
-    needs: build-docker-image
+    needs: build-docker-image  # Depends on the build-docker-image job
     steps:
       - name: Download Docker image
-        uses: actions/download-artifact@v3
-        with:
-          name: docker-image
+        uses: actions/download-artifact@v3  # Downloading the Docker image artifact
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v2  # Setting up Docker Buildx again
 
       - name: Authenticate with Google Cloud
-        uses: google-github-actions/auth@v1
+        uses: google-github-actions/auth@v1  # Authenticating with Google Cloud using service account key
         with:
           credentials_json: ${{ needs.set-env-vars.outputs.GCP_SA_KEY }}
 
       - name: Configure Docker to use gcloud as a credential helper
-        run: gcloud auth configure-docker
+        run: gcloud auth configure-docker  # Configuring Docker to use gcloud for authentication
 
       - name: Load Docker image from artifact
-        run: docker load -i ./$DOCKER_TAR
+        run: docker load -i ./$DOCKER_TAR  # Loading the Docker image from the tar file
 
       - name: Tag and Push Docker image to GCR
         run: |
+          # Tagging the Docker image with the build number and pushing to GCR
           docker tag gcr.io/${{ needs.set-env-vars.outputs.GCP_PROJECT_ID }}/$GCR_REPO_NAME/$DOCKER_IMG_NAME:${{ github.run_number }} \
           gcr.io/${{ needs.set-env-vars.outputs.GCP_PROJECT_ID }}/$GCR_REPO_NAME/$DOCKER_IMG_NAME:${{ github.run_number }}
+          
+          # Tagging the image as 'latest' and pushing it to GCR
+          docker tag gcr.io/${{ needs.set-env-vars.outputs.GCP_PROJECT_ID }}/$GCR_REPO_NAME/$DOCKER_IMG_NAME:${{ github.run_number }} \
+          gcr.io/${{ needs.set-env-vars.outputs.GCP_PROJECT_ID }}/$GCR_REPO_NAME/$DOCKER_IMG_NAME:latest
 
           docker push gcr.io/${{ needs.set-env-vars.outputs.GCP_PROJECT_ID }}/$GCR_REPO_NAME/$DOCKER_IMG_NAME:${{ github.run_number }}
+          docker push gcr.io/${{ needs.set-env-vars.outputs.GCP_PROJECT_ID }}/$DOCKER_IMG_NAME:latest
 
   update-manifest:
     runs-on: ubuntu-latest
-    needs: push-docker-image
+    needs: push-docker-image  # Depends on the push-docker-image job
     steps:
       - name: Checkout manifest repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v3  # Checking out the Kubernetes manifest repository
         with:
-          repository: stem-fresh/React-app-manifests
-          token: ${{ secrets.PAT_GITHUB }}
+          repository: stem-fresh/React-app-manifests  # Specify the repository for the Kubernetes manifests
+          token: ${{ secrets.PAT_GITHUB }}  # Using a personal access token for authentication
           persist-credentials: false
           ref: ${{ github.ref_name }}
 
       - name: Update image tag in Kubernetes manifest
         run: |
+          # Updating the image tag in the Kubernetes manifest
           sed -i "s|image:.*|image: gcr.io/${{ needs.set-env-vars.outputs.GCP_PROJECT_ID }}/$GCR_REPO_NAME/$DOCKER_IMG_NAME:${{ github.run_number }}|g" deployment.yaml
 
       - name: Commit and push updated manifest
         run: |
+          # Committing and pushing the updated manifest
           git config --global user.email "thestemfresh@gmail.com"
           git config --global user.name "GitHub Actions"
           git add deployment.yaml
@@ -164,33 +174,42 @@ jobs:
 
   deploy-to-gke:
     runs-on: ubuntu-latest
-    needs: update-manifest
+    needs: update-manifest  # Depends on the update-manifest job
     steps:
       - name: Authenticate with Google Cloud
-        uses: google-github-actions/auth@v1
+        uses: google-github-actions/auth@v1  # Authenticating with Google Cloud
         with:
           credentials_json: ${{ needs.set-env-vars.outputs.GCP_SA_KEY }}
 
       - name: Install kubectl
-        run: gcloud components install kubectl
+        run: gcloud components install kubectl  # Installing kubectl to interact with GKE
 
       - name: Configure kubectl
         run: |
+          # Configuring kubectl to interact with the GKE cluster
           gcloud container clusters get-credentials ${{ secrets.CLUSTER_NAME }} --zone ${{ secrets.CLUSTER_ZONE }} --project ${{ needs.set-env-vars.outputs.GCP_PROJECT_ID }}
 
       - name: Apply Kubernetes manifest
-        run: kubectl apply -f deployment.yaml
+        run: |
+          # Applying the Kubernetes manifest to deploy the updated image
+          set -o pipefail
+          kubectl apply -f deployment.yaml
 
       - name: Wait for Deployment to Complete
-        run: kubectl rollout status deployment/${{ secrets.DEPLOYMENT_NAME }} --timeout=120s
+        run: kubectl rollout status deployment/${{ secrets.DEPLOYMENT_NAME }} --timeout=120s  # Waiting for the deployment to complete
 
       - name: Rollback if Deployment Fails
         if: failure()
-        run: kubectl rollout undo deployment/${{ secrets.DEPLOYMENT_NAME }}
+        run: kubectl rollout undo deployment/${{ secrets.DEPLOYMENT_NAME }}  # Rolling back the deployment if it fails
 
   cleanup:
     runs-on: ubuntu-latest
-    if: always()
+    if: always()  # This job always runs, regardless of success or failure
     steps:
       - name: Clean up Docker images
-        run: docker rmi $(docker images -q --filter "dangling=true") || true
+        run: docker rmi $(docker images -q --filter "dangling=true") || true  # Cleaning up dangling Docker images
+
+      - name: Remove unused images
+        run: |
+          # Removing unused Docker images to free up space
+          docker image prune -a --force || true
