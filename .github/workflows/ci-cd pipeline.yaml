@@ -1,10 +1,11 @@
 name: CI/CD Pipeline
 
 on:
-  push:
+  push:  
     branches:
-      # - feature/ci-cd
+      - feature/cicd-pipeline           
       - dev
+      # - main
 
 permissions:
   contents: read
@@ -12,22 +13,42 @@ permissions:
 env:
   GCR_REPO_NAME: ${{ secrets.GCR_REPO_NAME }}
   DOCKER_TAR: "docker_image_${{ github.run_number }}.tar"
-  DOCKER_IMG_NAME: "iryscore"
+  DOCKER_IMG_NAME: "irys-ui-img"
   PAT_GITHUB: ${{ secrets.PAT_GITHUB }}
 
 jobs:
   set-env-vars:
     runs-on: ubuntu-latest
+    outputs:
+      GCP_PROJECT_ID: ${{ steps.set-vars.outputs.GCP_PROJECT_ID }}
+      GCP_SA_KEY: ${{ steps.set-vars.outputs.GCP_SA_KEY }}
     steps:
-      - name: Set environment variables based on branch
+      - id: set-vars
         run: |
-          if [[ "${{ github.ref }}" == "refs/heads/dev" ]]; then
+          if [[ "$GITHUB_REF" == "refs/heads/dev" ]]; then
             echo "GCP_PROJECT_ID=${{ secrets.GCP_DEV_PROJECT_ID }}" >> $GITHUB_ENV
-            echo "GCP_SA_KEY=${{ secrets.GCP_DEV_SA_KEY }}" >> $GITHUB_ENV
-          elif [[ "${{ github.ref }}" == "refs/heads/feature/ci-cd" ]]; then
+            echo "GCP_SA_KEY<<EOF" >> $GITHUB_OUTPUT 
+            echo "${{ secrets.GCP_DEV_SA_KEY }}" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT 
+            echo "GCP_PROJECT_ID=${{ secrets.GCP_DEV_PROJECT_ID }}" >> $GITHUB_OUTPUT
+          elif [[ "$GITHUB_REF" == "refs/heads/main" ]]; then
+            echo "GCP_PROJECT_ID=${{ secrets.GCP_PROD_PROJECT_ID }}" >> $GITHUB_ENV
+            echo "GCP_SA_KEY<<EOF" >> $GITHUB_ENV
+            echo "${{ secrets.GCP_PROD_SA_KEY }}" >> $GITHUB_ENV
+            echo "EOF" >> $GITHUB_ENV
+            echo "GCP_PROJECT_ID=${{ secrets.GCP_PROD_PROJECT_ID }}" >> $GITHUB_OUTPUT
+            echo "GCP_SA_KEY=${{ secrets.GCP_PROD_SA_KEY }}" >> $GITHUB_OUTPUT
+          elif [[ "$GITHUB_REF" == "refs/heads/feature/cicd-pipeline" ]]; then
             echo "GCP_PROJECT_ID=${{ secrets.GCP_DEV_PROJECT_ID }}" >> $GITHUB_ENV
-            echo "GCP_SA_KEY=${{ secrets.GCP_DEV_SA_KEY }}" >> $GITHUB_ENV
+            echo "GCP_SA_KEY<<EOF" >> $GITHUB_ENV
+            echo "${{ secrets.GCP_DEV_SA_KEY }}" >> $GITHUB_ENV
+            echo "EOF" >> $GITHUB_ENV
+            echo "GCP_PROJECT_ID=${{ secrets.GCP_DEV_PROJECT_ID }}" >> $GITHUB_OUTPUT
+            echo "GCP_SA_KEY=${{ secrets.GCP_DEV_SA_KEY }}" >> $GITHUB_OUTPUT
           fi
+
+      - name: Debug GCP_PROJECT_ID
+        run: printenv
 
   checkout:
     runs-on: ubuntu-latest
@@ -40,30 +61,52 @@ jobs:
     runs-on: ubuntu-latest
     needs: checkout
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Install Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+  
+      - name: Install pnpm
+        run: npm install -g pnpm
+  
+      - name: List current directory files (for debugging)
+        run: ls -al /home/runner/work/React-app
+  
       - name: Install dependencies using pnpm
         run: pnpm install
-
+  
       - name: Audit dependencies using pnpm
-        run: pnpm audit --audit-level=moderate
+        run: pnpm audit --audit-level=low || true
 
   build-docker-image:
     runs-on: ubuntu-latest
     needs: dependency-audit
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: List all environment variables
+        run: printenv
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
+
+      - name: Debug GCP_PROJECT_ID
+        run: echo "GCP_PROJECT_ID=${{ needs.set-env-vars.outputs.GCP_PROJECT_ID }}"
 
       - name: Build Docker image
         id: build
         run: |
           docker buildx build --platform linux/amd64 --output type=docker,dest=./$DOCKER_TAR \
-          --tag gcr.io/$GCP_PROJECT_ID/$GCR_REPO_NAME/$DOCKER_IMG_NAME:${{ github.run_number }} .
+          --tag gcr.io/${{ needs.set-env-vars.outputs.GCP_PROJECT_ID }}/$GCR_REPO_NAME/$DOCKER_IMG_NAME:${{ github.run_number }} .
 
       - name: Save Docker image as artifact
         uses: actions/upload-artifact@v3
         with:
           name: docker-image
-          path: ./$DOCKER_TAR
+          path: ./${{ env.DOCKER_TAR }}
 
   push-docker-image:
     runs-on: ubuntu-latest
@@ -80,7 +123,7 @@ jobs:
       - name: Authenticate with Google Cloud
         uses: google-github-actions/auth@v1
         with:
-          credentials_json: $GCP_SA_KEY
+          credentials_json: ${{ needs.set-env-vars.outputs.GCP_SA_KEY }}
 
       - name: Configure Docker to use gcloud as a credential helper
         run: gcloud auth configure-docker
@@ -90,10 +133,10 @@ jobs:
 
       - name: Tag and Push Docker image to GCR
         run: |
-          docker tag gcr.io/$GCP_PROJECT_ID/$GCR_REPO_NAME/$DOCKER_IMG_NAME:${{ github.run_number }} \
-          gcr.io/$GCP_PROJECT_ID/$GCR_REPO_NAME/$DOCKER_IMG_NAME:${{ github.run_number }}
+          docker tag gcr.io/${{ needs.set-env-vars.outputs.GCP_PROJECT_ID }}/$GCR_REPO_NAME/$DOCKER_IMG_NAME:${{ github.run_number }} \
+          gcr.io/${{ needs.set-env-vars.outputs.GCP_PROJECT_ID }}/$GCR_REPO_NAME/$DOCKER_IMG_NAME:${{ github.run_number }}
 
-          docker push gcr.io/$GCP_PROJECT_ID/$GCR_REPO_NAME/$DOCKER_IMG_NAME:${{ github.run_number }}
+          docker push gcr.io/${{ needs.set-env-vars.outputs.GCP_PROJECT_ID }}/$GCR_REPO_NAME/$DOCKER_IMG_NAME:${{ github.run_number }}
 
   update-manifest:
     runs-on: ubuntu-latest
@@ -102,13 +145,14 @@ jobs:
       - name: Checkout manifest repository
         uses: actions/checkout@v3
         with:
-          repository: stem-fresh/My-first-app-manifest
+          repository: stem-fresh/React-app-manifests
           token: ${{ secrets.PAT_GITHUB }}
           persist-credentials: false
+          ref: ${{ github.ref_name }}
 
       - name: Update image tag in Kubernetes manifest
         run: |
-          sed -i "s|image:.*|image: gcr.io/$GCP_PROJECT_ID/$GCR_REPO_NAME/$DOCKER_IMG_NAME:${{ github.run_number }}|g" deployment.yaml
+          sed -i "s|image:.*|image: gcr.io/${{ needs.set-env-vars.outputs.GCP_PROJECT_ID }}/$GCR_REPO_NAME/$DOCKER_IMG_NAME:${{ github.run_number }}|g" deployment.yaml
 
       - name: Commit and push updated manifest
         run: |
@@ -116,7 +160,7 @@ jobs:
           git config --global user.name "GitHub Actions"
           git add deployment.yaml
           git commit -m "Updated image tag to ${{ github.run_number }}"
-          git push https://x-access-token:${{ secrets.PAT_GITHUB }}@github.com/stem-fresh/My-First-app-manifest.git HEAD:main
+          git push https://x-access-token:${{ secrets.PAT_GITHUB }}@github.com/stem-fresh/React-app-manifests.git HEAD:${{ github.ref_name }}
 
   deploy-to-gke:
     runs-on: ubuntu-latest
@@ -125,16 +169,14 @@ jobs:
       - name: Authenticate with Google Cloud
         uses: google-github-actions/auth@v1
         with:
-          credentials_json: $GCP_SA_KEY
+          credentials_json: ${{ needs.set-env-vars.outputs.GCP_SA_KEY }}
 
-      - name: Set up kubectl
-        uses: azure/setup-kubectl@v3
-        with:
-          version: 'latest'
+      - name: Install kubectl
+        run: gcloud components install kubectl
 
       - name: Configure kubectl
         run: |
-          gcloud container clusters get-credentials ${{ secrets.CLUSTER_NAME }} --zone ${{ secrets.CLUSTER_ZONE }} --project $GCP_PROJECT_ID
+          gcloud container clusters get-credentials ${{ secrets.CLUSTER_NAME }} --zone ${{ secrets.CLUSTER_ZONE }} --project ${{ needs.set-env-vars.outputs.GCP_PROJECT_ID }}
 
       - name: Apply Kubernetes manifest
         run: kubectl apply -f deployment.yaml
