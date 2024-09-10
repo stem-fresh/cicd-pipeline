@@ -32,8 +32,8 @@ jobs:
             echo "GCP_PROJECT_ID=${{ secrets.GCP_DEV_PROJECT_ID }}" >> $GITHUB_ENV
             echo "GCP_SA_KEY=${{ secrets.GCP_DEV_SA_KEY }}" >> $GITHUB_ENV
           elif [[ "$GITHUB_REF" == "refs/heads/feature/update" ]]; then
-            echo "GCP_PROJECT_ID=${{ secrets.GCP_DEV_PROJECT_ID }}" >> $GITHUB_ENV
-            echo "GCP_SA_KEY=${{ secrets.GCP_DEV_SA_KEY }}" >> $GITHUB_ENV
+            echo "GCP_PROJECT_ID=${{env.GCP_DEV_PROJECT_ID}}" >> $GITHUB_ENV
+            echo "GCP_SA_KEY=${{env.GCP_DEV_SA_KEY}}" >> $GITHUB_ENV
           fi
         env:
           GCP_DEV_PROJECT_ID: ${{ secrets.GCP_DEV_PROJECT_ID }}
