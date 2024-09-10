@@ -165,9 +165,11 @@ jobs:
         with:
           credentials_json: ${{env.GCP_DEV_SA_KEY}}
 
-      - name: Install kubectl
+      - name: Set up Google Cloud CLI
         uses: google-github-actions/setup-gcloud@v1
-        run: gcloud components install kubectl  # Installing kubectl to interact with GKE
+        with:
+          version: 'latest'
+          install_components: 'kubectl'
 
       - name: Configure kubectl
         run: |
