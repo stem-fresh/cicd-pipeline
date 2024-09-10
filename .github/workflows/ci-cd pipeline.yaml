@@ -23,9 +23,6 @@ jobs:
       GCP_PROJECT_ID: ${{ steps.set-vars.outputs.GCP_PROJECT_ID }}  # Output for GCP project ID
       GCP_SA_KEY: ${{ steps.set-vars.outputs.GCP_SA_KEY }}  # Output for GCP service account key
     steps:
-      - name: Install jq
-        run: sudo apt-get update && sudo apt-get install -y jq
-        
       - id: set-vars
         run: |
           # Conditional check for branch to set environment variables
