@@ -1,29 +1,17 @@
-# Use Node.js version 20+ as the base image
-FROM node:20
 
-# Create 'irysui' user and group
-RUN groupadd -g 1024 irysui && useradd -u 1025 -r -g irysui irysui
+FROM node:18-alpine
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y vim git
-
-RUN npm install -g pnpm
-
-# Set the working directory inside the container
-WORKDIR /app
+WORKDIR /simple-reactjs-app
 
 
-# Install dependencies using pnpm
-RUN pnpm install
+COPY . .
 
-COPY . /app
+RUN npm cache clean --force
 
-# Build the application
-RUN pnpm run build
+RUN npm install && npm run build && npm install -g create-react-app
 
-# Expose port 3000 for external access
 EXPOSE 3000
 
-CMD ["pnpm", "run", "dev"]  # For development mode
+CMD ["npm","start"]
 
 
