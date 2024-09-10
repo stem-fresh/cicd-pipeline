@@ -126,9 +126,9 @@ jobs:
           --cache-to type=local,dest=/tmp/.buildx-cache \
           --tag gcr.io/$GCP_PROJECT_ID/$GCR_REPO_NAME/$DOCKER_IMG_NAME:${{ github.run_number }} .
           
-          # Tagging the image with the 'latest' tag
-          docker tag gcr.io/$GCP_PROJECT_ID/$GCR_REPO_NAME/$DOCKER_IMG_NAME:${{ github.run_number }} \
-          gcr.io/$GCP_PROJECT_ID/$GCR_REPO_NAME/$DOCKER_IMG_NAME:${{ github.run_number }}
+          # Tagging the image
+          #docker tag gcr.io/$GCP_PROJECT_ID/$GCR_REPO_NAME/$DOCKER_IMG_NAME:${{ github.run_number }} \
+          #gcr.io/$GCP_PROJECT_ID/$GCR_REPO_NAME/$DOCKER_IMG_NAME:${{ github.run_number }}
 
       - name: Save Docker image as artifact
         uses: actions/upload-artifact@v3  # Uploading the Docker image as an artifact for later jobs
