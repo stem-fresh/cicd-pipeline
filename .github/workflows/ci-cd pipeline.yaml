@@ -93,6 +93,13 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-buildx-
 
+      - name: Debug For Info
+        id: debug
+        run: |
+          echo "GCP Project ID: ${{ needs.set-env-vars.outputs.GCP_PROJECT_ID }}"
+          echo "GCR Repo Name: $GCR_REPO_NAME"
+          echo "Docker Image Name: $DOCKER_IMG_NAME"
+
       - name: Build Docker image
         id: build
         run: |
