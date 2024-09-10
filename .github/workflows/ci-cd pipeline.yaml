@@ -31,7 +31,7 @@ jobs:
           elif [[ "$GITHUB_REF" == "refs/heads/main" ]]; then
             echo "GCP_PROJECT_ID=${{ secrets.GCP_PROD_PROJECT_ID }}" >> $GITHUB_ENV
             echo "GCP_SA_KEY=${{ secrets.GCP_PROD_SA_KEY }}" >> $GITHUB_ENV
-          elif [[ "$GITHUB_REF" == "refs/heads/feature/cicd-pipeline" ]]; then
+          elif [[ "$GITHUB_REF" == "refs/heads/feature/updated" ]]; then
             echo "GCP_PROJECT_ID=${{ secrets.GCP_DEV_PROJECT_ID }}" >> $GITHUB_ENV
             echo "GCP_SA_KEY=${{ secrets.GCP_DEV_SA_KEY }}" >> $GITHUB_ENV
           fi
