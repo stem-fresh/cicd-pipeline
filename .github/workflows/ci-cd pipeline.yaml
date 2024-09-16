@@ -6,6 +6,13 @@ on:
       - feature/cicd-pipeline           
       - dev
       # - main
+  pull_request:
+    branches:
+      - main
+      - dev
+      - feature/cicd-pipeline
+    types:
+      - closed
 
 permissions:
   contents: read
