@@ -159,14 +159,26 @@ jobs:
   deploy-to-gke:
     runs-on: ubuntu-latest
     needs: update-manifest  # Depends on the update-manifest job
+
     steps:
+      - name: Checkout manifest repository
+        uses: actions/checkout@v3  # Checking out the Kubernetes manifest repository
+        with:
+          repository: stem-fresh/React-app-manifests  # Specify the repository for the Kubernetes manifests
+          token: ${{ env.PAT_GITHUB }}  # Using a personal access token for authentication
+          persist-credentials: false
+          ref: ${{ github.ref_name }}
+
       - name: Authenticate with Google Cloud
         uses: google-github-actions/auth@v1  # Authenticating with Google Cloud
         with:
           credentials_json: ${{env.GCP_DEV_SA_KEY}}
 
-      - name: Install kubectl
-        run: gcloud components install kubectl  # Installing kubectl to interact with GKE
+      - name: Set up Google Cloud CLI
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          version: 'latest'
+          install_components: 'kubectl'
 
       - name: Configure kubectl
         run: |
@@ -177,9 +189,10 @@ jobs:
         run: |
           # Applying the Kubernetes manifest to deploy the updated image
           set -o pipefail
-          kubectl apply -f deployment.yaml
+          kubectl apply -f name_space.yaml -f deployment.yaml -f service.yaml -f hpa.yaml
 
       - name: Wait for Deployment to Complete
+        if: failure()
         run: kubectl rollout status deployment/${{ secrets.DEPLOYMENT_NAME }} --timeout=120s  # Waiting for the deployment to complete
 
       - name: Rollback if Deployment Fails

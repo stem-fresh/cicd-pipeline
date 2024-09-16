@@ -17,6 +17,7 @@ RUN npm install && npm run build && npm install -g create-react-app
 COPY nginx.conf /etc/nginx/nginx.conf
 
 # Expose ports
+
 EXPOSE 3000
 
 # Run NGINX and Node.js server
