@@ -3,6 +3,13 @@ FROM node:18-alpine
 # Install NGINX
 RUN apk add --no-cache nginx
 
+RUN mkdir -p /var/lib/nginx/tmp /var/lib/nginx/logs \
+    && chown -R nginx:nginx /var/lib/nginx \
+    && chmod -R 755 /var/lib/nginx
+
+# Run Nginx as the 'nginx' user
+USER nginx
+
 # Set the working directory
 WORKDIR /simple-reactjs-app
 
