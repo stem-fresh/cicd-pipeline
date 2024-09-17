@@ -31,12 +31,8 @@ COPY nginx.conf /etc/nginx/nginx.conf
 # Expose port 3000
 EXPOSE 3000
 
-# Set the working directory to ensure NGINX and application can write logs
-WORKDIR /simple-reactjs-app
-
 # Switch to nginx user
 USER nginx
 
 # Start both NGINX and the Node.js server
 CMD ["sh", "-c", "npm start dev & nginx -g 'daemon off;'"]
-
