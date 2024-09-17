@@ -15,8 +15,8 @@ RUN npm install && \
     npm run build && \
     npm cache clean --force
 
-# Install Create React App globally
-RUN npm install -g create-react-app
+# Remove unnecessary global installation of Create React App
+# RUN npm install -g create-react-app
 
 # Copy NGINX configuration
 COPY nginx.conf /etc/nginx/nginx.conf
@@ -25,10 +25,10 @@ COPY nginx.conf /etc/nginx/nginx.conf
 RUN mkdir -p /var/lib/nginx/tmp /var/lib/nginx/logs && \
     chown -R nginx:nginx /simple-reactjs-app /var/lib/nginx /etc/nginx && \
     chmod -R 755 /var/lib/nginx && \
-    chmod -R 777 /etc/nginx
+    chmod -R 755 /etc/nginx
 
-# Expose port 3000
-EXPOSE 3000
+# Expose port 8080
+EXPOSE 8080
 
 # Switch to nginx user
 USER nginx
