@@ -4,13 +4,6 @@ FROM node:18-alpine
 # Install NGINX
 RUN apk add --no-cache nginx
 
-# Ensure appropriate permissions for NGINX and application directories
-RUN mkdir -p /var/lib/nginx/tmp /var/lib/nginx/logs && \
-    chown -R nginx:nginx /simple-reactjs-app /var/lib/nginx /etc/nginx && \
-    chmod -R 755 /var/lib/nginx
-
-RUN chmod -R 777 /etc/nginx
-
 # Set the working directory for the application
 WORKDIR /simple-reactjs-app
 
@@ -27,6 +20,12 @@ RUN npm install -g create-react-app
 
 # Copy NGINX configuration
 COPY nginx.conf /etc/nginx/nginx.conf
+
+# Ensure appropriate permissions for NGINX and application directories
+RUN mkdir -p /var/lib/nginx/tmp /var/lib/nginx/logs && \
+    chown -R nginx:nginx /simple-reactjs-app /var/lib/nginx /etc/nginx && \
+    chmod -R 755 /var/lib/nginx && \
+    chmod -R 777 /etc/nginx
 
 # Expose port 3000
 EXPOSE 3000
