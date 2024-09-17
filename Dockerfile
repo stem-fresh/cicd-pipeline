@@ -39,3 +39,4 @@ USER nginx
 
 # Start both NGINX and the Node.js server
 CMD ["sh", "-c", "npm start dev & nginx -g 'daemon off;'"]
+
