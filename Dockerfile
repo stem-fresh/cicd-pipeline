@@ -2,7 +2,7 @@
 FROM node:18-alpine
 
 # Install NGINX
-RUN apk add --no-cache nginx
+RUN apk add --no-cache nginx certbot certbot-nginx
 
 # Set the working directory for the application
 WORKDIR /simple-reactjs-app
