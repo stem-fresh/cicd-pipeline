@@ -29,6 +29,9 @@ RUN mkdir -p /var/lib/nginx/tmp /var/lib/nginx/logs && \
 # Expose port 3000
 EXPOSE 3000
 
+# Set the working directory to ensure NGINX and application can write logs
+WORKDIR /simple-reactjs-app
+
 # Switch to nginx user
 USER nginx
 
