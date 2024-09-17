@@ -1,8 +1,8 @@
 # Use Node.js 18 with Alpine as the base image
 FROM node:18-alpine
 
-# Install NGINX
-RUN apk add --no-cache nginx certbot certbot-nginx
+# Install NGINX and Certbot
+RUN apk add --no-cache nginx certbot certbot-nginx supervisor
 
 # Set the working directory for the application
 WORKDIR /simple-reactjs-app
@@ -15,23 +15,27 @@ RUN npm install && \
     npm run build && \
     npm cache clean --force
 
-# Remove unnecessary global installation of Create React App
-# RUN npm install -g create-react-app
-
-# Copy NGINX configuration
+# Copy NGINX configuration (updated for HTTP and HTTPS)
 COPY nginx.conf /etc/nginx/nginx.conf
 
 # Ensure appropriate permissions for NGINX and application directories
-RUN mkdir -p /var/lib/nginx/tmp /var/lib/nginx/logs && \
-    chown -R nginx:nginx /simple-reactjs-app /var/lib/nginx /etc/nginx && \
+RUN mkdir -p /var/lib/nginx/tmp /var/lib/nginx/logs /var/www/certbot && \
+    chown -R nginx:nginx /simple-reactjs-app /var/lib/nginx /etc/nginx /var/www/certbot && \
     chmod -R 755 /var/lib/nginx && \
     chmod -R 755 /etc/nginx
 
-# Expose port 8080
-EXPOSE 8080
+# Supervisor configuration for managing NGINX and Certbot together
+COPY supervisord.conf /etc/supervisord.conf
 
-# Switch to nginx user
-USER nginx
+# Expose HTTP and HTTPS ports
+EXPOSE 80 443
 
-# Start both NGINX and the Node.js server
-CMD ["sh", "-c", "npm start dev & nginx -g 'daemon off;'"]
+# Add environment variables for domain and email used in SSL certificates
+ENV DOMAIN_NAME=yourdomain.com
+ENV EMAIL=your-email@example.com
+
+# Use root user to run NGINX and Certbot initially
+USER root
+
+# Start NGINX and Certbot using Supervisor to handle both
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf"]
