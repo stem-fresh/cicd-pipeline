@@ -3,7 +3,7 @@ name: CI/CD Pipeline
 on:
   push:  
     branches:
-      - feature/update  # Pipeline triggers on push to the feature/cicd-pipeline branch
+      - testing  # Pipeline triggers on push to the feature/cicd-pipeline branch
       # - dev                    # Pipeline triggers on push to the dev branch
       # - main                 # Pipeline can also trigger on push to main branch (currently commented)
 
@@ -175,11 +175,16 @@ jobs:
           # Configuring kubectl to interact with the GKE cluster
           gcloud container clusters get-credentials ${{ secrets.CLUSTER_NAME }} --zone ${{ secrets.CLUSTER_ZONE }} --project $GCP_PROJECT_ID
 
+      - name: Install cert-manager
+        run: |
+          # Installing cert-manager
+          kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.10.0/cert-manager.yaml
+
       - name: Apply Kubernetes manifest
         run: |
           # Applying the Kubernetes manifest to deploy the updated image
           set -o pipefail
-          kubectl apply -f name_space.yaml -f deployment.yaml -f service.yaml -f hpa.yaml
+          kubectl apply -f name_space.yaml -f issuer.yaml -f certificate.yaml -f deployment.yaml -f service.yaml -f hpa.yaml
 
       - name: Wait for Deployment to Complete
         if: failure()
