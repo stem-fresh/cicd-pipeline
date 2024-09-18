@@ -28,3 +28,5 @@ EXPOSE 80 443
 
 # Start NGINX
 CMD ["nginx", "-g", "daemon off;"]
+
+
