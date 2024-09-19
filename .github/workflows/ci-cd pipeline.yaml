@@ -180,11 +180,19 @@ jobs:
           # Installing cert-manager
           kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.10.0/cert-manager.yaml
 
-      - name: Apply Kubernetes manifest
+      - name: Create Namespace
+        run: kubectl apply -f name_space.yaml
+
+      - name: Apply Cert-Manager Resources
         run: |
-          # Applying the Kubernetes manifest to deploy the updated image
-          set -o pipefail
-          kubectl apply -f name_space.yaml -f issuer.yaml -f certificate.yaml -f deployment.yaml -f service.yaml -f hpa.yaml
+          kubectl apply -f issuer.yaml
+          kubectl apply -f certificate.yaml
+
+      - name: Apply Application Resources
+        run: |
+          kubectl apply -f deployment.yaml
+          kubectl apply -f service.yaml
+          kubectl apply -f hpa.yaml
 
       - name: Wait for Deployment to Complete
         if: failure()
