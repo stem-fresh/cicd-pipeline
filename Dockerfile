@@ -40,7 +40,7 @@ COPY default.conf /etc/nginx/conf.d/default.conf
 COPY --from=node-build /app/build /usr/share/nginx/html
 
 # Expose port 80 and 443
-EXPOSE 80 443
+EXPOSE 8080 8443
 
 # Start NGINX as a non-root user
 CMD ["nginx", "-g", "daemon off;"]
