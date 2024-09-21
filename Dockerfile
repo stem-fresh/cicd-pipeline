@@ -32,3 +32,6 @@ EXPOSE 3000
 
 # Start the Node.js application
 CMD ["npm", "start"]
+
+
+
