@@ -25,10 +25,10 @@ FROM nginx:alpine
 RUN addgroup -g 1001 -S appgroup && adduser -u 1001 -S appuser -G appgroup
 
 # Set the permissions for the nginx directory to allow non-root usage
-RUN chown -R appuser:appgroup /var/cache/nginx /var/run /var/log/nginx
+RUN chown -R 1001:1001 /var/cache/nginx /var/run /var/log/nginx
 
-# Switch to the non-root user
-USER appuser
+# Switch to the non-root user by UID
+USER 1001
 
 # Copy NGINX configuration file
 COPY nginx.conf /etc/nginx/nginx.conf
