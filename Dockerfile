@@ -4,15 +4,16 @@ FROM node:18-alpine as node-build
 # Create a non-root user and group
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
-# Switch to the non-root user
-USER appuser
-
 # Set the working directory
 WORKDIR /app
 
-# Install dependencies
+# Install dependencies as root
 COPY package*.json ./
+USER root
 RUN npm install
+
+# Switch back to the non-root user
+USER appuser
 
 # Copy the application code
 COPY . .
