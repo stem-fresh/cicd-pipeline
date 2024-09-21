@@ -12,9 +12,6 @@ COPY package*.json ./
 USER root
 RUN npm install
 
-# Switch back to the non-root user
-USER appuser
-
 # Copy the application code
 COPY . .
 
