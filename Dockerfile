@@ -1,8 +1,8 @@
 # Use an official Node.js runtime as a parent image
 FROM node:18-alpine as node-build
 
-# Create a non-root user and group
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+# Create a non-root user and group with a specific numeric UID and GID
+RUN addgroup -g 1001 -S appgroup && adduser -u 1001 -S appuser -G appgroup
 
 # Set the working directory
 WORKDIR /app
@@ -21,8 +21,8 @@ RUN npm run build
 # Use an official NGINX runtime as a base image for serving the app
 FROM nginx:alpine
 
-# Create a non-root user and group
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+# Create a non-root user and group with a specific numeric UID and GID
+RUN addgroup -g 1001 -S appgroup && adduser -u 1001 -S appuser -G appgroup
 
 # Set the permissions for the nginx directory to allow non-root usage
 RUN chown -R appuser:appgroup /var/cache/nginx /var/run /var/log/nginx
