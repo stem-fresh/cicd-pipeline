@@ -25,7 +25,7 @@ RUN npm run build
 RUN chown -R irys:irys /app
 
 # Switch to the new user
-USER irys
+USER 1025
 
 # Expose the application port
 EXPOSE 3000
