@@ -3,9 +3,10 @@ name: CI/CD Pipeline
 on:
   push:  
     branches:
-      - feature/update  # Pipeline triggers on push to the feature/cicd-pipeline branch
+      #- feature/update  # Pipeline triggers on push to the feature/cicd-pipeline branch
       # - dev                    # Pipeline triggers on push to the dev branch
-      # - main                 # Pipeline can also trigger on push to main branch (currently commented)
+      - main                 # Pipeline can also trigger on push to main branch (currently commented
+
 
 permissions:
   contents: write  # Provides the necessary permissions for the pipeline to write contents
