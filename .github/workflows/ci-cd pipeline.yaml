@@ -31,7 +31,9 @@ jobs:
         run: |
           if [ "${{ env.ENVIRONMENT }}" == "dev" ]; then
             echo "GCP_PROJECT_ID=${{ secrets.GCP_DEV_PROJECT_ID }}" >> "$GITHUB_OUTPUT"
-            echo "GCP_SA_KEY=${{ secrets.GCP_DEV_SA_KEY }}" >> "$GITHUB_OUTPUT"
+            echo "GCP_SA_KEY<<EOF" >> "$GITHUB_OUTPUT"
+            echo "${{ secrets.GCP_DEV_SA_KEY }}" >> "$GITHUB_OUTPUT"
+            echo "EOF" >> "$GITHUB_OUTPUT"
             echo "CLUSTER_NAME=${{ secrets.DEV_CLUSTER_NAME }}" >> "$GITHUB_OUTPUT"
             echo "CLUSTER_ZONE=${{ secrets.DEV_CLUSTER_ZONE }}" >> "$GITHUB_OUTPUT"
           elif [ "${{ env.ENVIRONMENT }}" == "qa" ]; then
