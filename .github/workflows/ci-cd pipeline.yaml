@@ -1,0 +1,231 @@
+name: CI/CD Pipeline
+
+on:
+  push:  
+    branches:
+      - dev
+      - qa
+      - staging
+      - production
+        # Pipeline triggers on push to the feature/testing branch
+
+permissions:
+  contents: write  # Provides the necessary permissions for the pipeline to write contents
+
+env:
+  GCR_REPO_NAME: ${{ secrets.GCR_REPO_NAME }}  # Using secrets for GCR repository name
+  DOCKER_TAR: "docker_image_${{ github.run_number }}.tar"  # Naming the docker image tar file with the run number
+  DOCKER_IMG_NAME: "irys-ui-img"  # Setting the Docker image name
+
+  # Set environment variables based on the branch
+  ENVIRONMENT: ${{ github.ref == 'refs/heads/dev' && 'dev' || github.ref == 'refs/heads/qa' && 'qa' || github.ref == 'refs/heads/staging' && 'staging' || github.ref == 'refs/heads/production' && 'production' || 'unknown' }}
+  
+  GCP_PROJECT_ID: ${{ github.ref == 'refs/heads/dev' && secrets.GCP_DEV_PROJECT_ID || github.ref == 'refs/heads/qa' && secrets.GCP_QA_PROJECT_ID || github.ref == 'refs/heads/staging' && secrets.GCP_STAGING_PROJECT_ID || github.ref == 'refs/heads/production' && secrets.GCP_PRODUCTION_PROJECT_ID || 'unknown' }}
+  GCP_SA_KEY: ${{ github.ref == 'refs/heads/dev' && secrets.GCP_DEV_SA_KEY || github.ref == 'refs/heads/qa' && secrets.GCP_QA_SA_KEY || github.ref == 'refs/heads/staging' && secrets.GCP_STAGING_SA_KEY || github.ref == 'refs/heads/production' && secrets.GCP_PRODUCTION_SA_KEY || 'unknown' }}
+  
+  CLUSTER_NAME: ${{ github.ref == 'refs/heads/dev' && secrets.DEV_CLUSTER_NAME|| github.ref == 'refs/heads/qa' && secrets.CLUSTER_NAME_QA || github.ref == 'refs/heads/staging' && secrets.CLUSTER_NAME_STAGING || github.ref == 'refs/heads/production' && secrets.CLUSTER_NAME_PRODUCTION || 'unknown' }}  # Conditional for cluster name
+  CLUSTER_ZONE: ${{ github.ref == 'refs/heads/dev' && secrets.DEV_CLUSTER_ZONE || github.ref == 'refs/heads/qa' && secrets.CLUSTER_ZONE_QA || github.ref == 'refs/heads/staging' && secrets.CLUSTER_ZONE_STAGING || github.ref == 'refs/heads/production' && secrets.CLUSTER_ZONE_PRODUCTION || 'unknown' }}  # Conditional for cluster zone
+  PAT_GITHUB: ${{ secrets.PAT_GITHUB }}
+
+jobs:
+  checkout:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3  # Step to checkout the code from the repository
+
+  dependency-audit:
+    runs-on: ubuntu-latest
+    needs: checkout  # Depends on the checkout job
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3  # Checking out code again for dependency auditing
+
+      - name: Install Node.js
+        uses: actions/setup-node@v3  # Installing Node.js (version 18) for package management
+        with:
+          node-version: '18'
+
+      - name: Install pnpm
+        run: npm install -g pnpm  # Installing pnpm globally
+
+      - name: Install dependencies using pnpm
+        run: pnpm install  # Installing dependencies using pnpm
+
+      - name: Audit dependencies using pnpm
+        run: pnpm audit --audit-level=low || true  # Auditing dependencies, allowing only low-level security issues
+
+  build-docker-image:
+    runs-on: ubuntu-latest
+    needs: dependency-audit  # Depends on the dependency-audit job
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3  # Checking out the code for building the Docker image
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2  # Setting up Docker Buildx for multi-platform builds
+
+      - name: Debug Information
+        run: |
+          # Printing debug information
+          echo "GCP_PROJECT_ID: $GCP_PROJECT_ID"
+          echo "GCP_DEV_SA_KEY: $GCP_SA_KEY"  # Note: Be careful with sensitive data
+          echo "CLUSTER_NAME: $CLUSTER_NAME"
+          echo "CLUSTER_ZONE: $CLUSTER_ZONE"
+
+      - name: Build Docker image
+        id: build
+        run: |
+          # Building the Docker image and saving it as a tar file
+          docker buildx build --platform linux/amd64 --output type=docker,dest=./${{ env.DOCKER_TAR }} \
+          --tag gcr.io/$GCP_PROJECT_ID/$GCR_REPO_NAME/$DOCKER_IMG_NAME:${{ github.run_number }} .
+
+      - name: Save Docker image as artifact
+        uses: actions/upload-artifact@v3  # Uploading the Docker image as an artifact for later jobs
+        with:
+          name: docker-image
+          path: ./${{ env.DOCKER_TAR }}
+
+      - name: Check if Docker tar exists
+        run: ls -l ./${{ env.DOCKER_TAR }}
+
+  push-docker-image:
+    runs-on: ubuntu-latest
+    needs: build-docker-image  # Depends on the build-docker-image job
+    steps:
+      - name: Download Docker image
+        uses: actions/download-artifact@v3
+        with:
+          name: docker-image  # Downloading the Docker image artifact
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2  # Setting up Docker Buildx again
+
+      - name: Authenticate with Google Cloud
+        uses: google-github-actions/auth@v1  # Authenticating with Google Cloud using service account key
+        with:
+          credentials_json: ${{env.GCP_SA_KEY}}
+
+      - name: Configure Docker to use gcloud as a credential helper
+        run: gcloud auth configure-docker  # Configuring Docker to use gcloud for authentication
+
+      - name: Load Docker image from artifact
+        run: docker load -i ./${{ env.DOCKER_TAR }}  # Loading the Docker image from the tar file
+
+      - name: Tag and Push Docker image to GCR
+        run: |
+          # Tagging the Docker image with the build number and pushing to GCR
+          docker tag gcr.io/$GCP_PROJECT_ID/$GCR_REPO_NAME/$DOCKER_IMG_NAME:${{ github.run_number }} \
+          gcr.io/$GCP_PROJECT_ID/$GCR_REPO_NAME/$DOCKER_IMG_NAME:${{ github.run_number }}
+          docker push gcr.io/$GCP_PROJECT_ID/$GCR_REPO_NAME/$DOCKER_IMG_NAME:${{ github.run_number }}
+
+  update-manifest:
+    runs-on: ubuntu-latest
+    needs: push-docker-image  # Depends on the push-docker-image job
+    steps:
+      - name: Checkout manifest repository
+        uses: actions/checkout@v3  # Checking out the Kubernetes manifest repository
+        with:
+          repository: stem-fresh/React-app-manifests  # Specify the repository for the Kubernetes manifests
+          token: ${{ env.PAT_GITHUB }}  # Using a personal access token for authentication
+          persist-credentials: false
+          ref: ${{ github.ref_name }}
+
+      - name: Update image tag in Kubernetes manifest
+        run: |
+          # Updating the image tag in the Kubernetes manifest
+          sed -i "s|image:.*|image: gcr.io/$GCP_PROJECT_ID/$GCR_REPO_NAME/$DOCKER_IMG_NAME:${{ github.run_number }}|g" deployment.yaml
+
+      - name: Commit and push updated manifest
+        run: |
+          # Committing and pushing the updated manifest
+          git config --global user.email "thestemfresh@gmail.com"
+          git config --global user.name "GitHub Actions"
+          git add deployment.yaml
+          git commit -m "Updated image tag to ${{ github.run_number }}"
+          git push https://x-access-token:${{ env.PAT_GITHUB }}@github.com/stem-fresh/React-app-manifests.git HEAD:${{ github.ref_name }}
+
+  deploy-to-gke:
+    runs-on: ubuntu-latest
+    needs: update-manifest  # Depends on the update-manifest job
+
+    steps:
+      - name: Checkout manifest repository
+        uses: actions/checkout@v3  # Checking out the Kubernetes manifest repository
+        with:
+          repository: stem-fresh/React-app-manifests  # Specify the repository for the Kubernetes manifests
+          token: ${{ env.PAT_GITHUB }}  # Using a personal access token for authentication
+          persist-credentials: false
+          ref: ${{ github.ref_name }}
+ 
+      - name: Authenticate with Google Cloud
+        uses: google-github-actions/auth@v1  # Authenticating with Google Cloud
+        with:
+          credentials_json: ${{env.GCP_SA_KEY}}
+
+      - name: Set up Google Cloud CLI
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          version: 'latest'
+          install_components: 'kubectl'
+
+      - name: Configure kubectl
+        run: |
+          # Configuring kubectl to interact with the GKE cluster
+          gcloud container clusters get-credentials $CLUSTER_NAME --zone $CLUSTER_ZONE --project $GCP_PROJECT_ID
+
+      - name: Install cert-manager
+        run: |
+          # Installing cert-manager
+          kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.10.0/cert-manager.yaml
+      
+      - name: Install NGINX Ingress Controller
+        run: |
+          # Install NGINX Ingress Controller from the official manifest
+          kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml
+      
+      - name: Create Namespace
+        run: kubectl apply -f name_space.yaml
+
+      - name: Apply Cert-Manager Resources
+        run: |
+          kubectl apply -f issuer.yaml
+          kubectl apply -f certificate.yaml
+
+      - name: Apply Application Resources
+        run: |
+          kubectl apply -f deployment.yaml
+          kubectl apply -f service.yaml
+          kubectl apply -f hpa.yaml
+      
+      - name: Apply Ingress Resources
+        run: |
+          kubectl apply -f ingress.yaml
+          
+      - name: Wait for Deployment to Complete
+        if: failure()
+        run: kubectl rollout status deployment/${{ secrets.DEPLOYMENT_NAME }} --timeout=120s  # Waiting for the deployment to complete
+
+      - name: Rollback if Deployment Fails
+        if: failure()
+        run: kubectl rollout undo deployment/${{ secrets.DEPLOYMENT_NAME }}  # Rolling back the deployment if it fails
+
+  cleanup:
+    runs-on: ubuntu-latest
+    needs: deploy-to-gke
+    if: always()  # This job always runs, regardless of success or failure
+    steps:
+      - name: Clean up Docker images
+        run: docker rmi $(docker images -q --filter "dangling=true") || true  # Cleaning up dangling Docker images
+
+      - name: Remove unused images
+        run: |
+          # Removing unused Docker images to free up space
+          docker image prune -a --force || true
+
+
+
+
+
+
+      
