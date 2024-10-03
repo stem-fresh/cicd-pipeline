@@ -1,30 +1,34 @@
-# Use Node.js version 20+ as the base image
-FROM node:20
+# Base image for Node.js
+FROM node:14-alpine
 
-# Create 'irysui' user and group
-RUN groupadd -g 1024 irysui && useradd -u 1025 -r -g irysui irysui
+# Create a group and a user with specific IDs
+RUN apk add --no-cache shadow \
+    && groupadd -g 1024 irys \
+    && useradd -u 1025 -r -g irys irys
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y vim git
-
-# Install pnpm using the specified command
-RUN curl -fsSL https://get.pnpm.io/install.sh | sh -
-
-# Set the working directory inside the container
+# Create app directory
 WORKDIR /app
 
+# Copy package.json and package-lock.json
+COPY package*.json ./
 
-# Install dependencies using pnpm
-RUN pnpm install
+# Install dependencies
+RUN npm install
 
-COPY . /app
+# Copy the rest of the application code
+COPY . .
 
-# Build the application
-RUN pnpm run build
+# Build the React app (if applicable)
+RUN npm run build
 
-# Expose port 3000 for external access
+# Change ownership of the app directory
+RUN chown -R irys:irys /app
+
+# Switch to the new user
+USER 1025
+
+# Expose the application port
 EXPOSE 3000
 
-CMD ["pnpm", "run", "dev"]  # For development mode
-
-
+# Start the Node.js application
+CMD ["npm", "start"]
