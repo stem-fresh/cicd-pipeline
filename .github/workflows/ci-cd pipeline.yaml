@@ -20,16 +20,40 @@ env:
   # Set environment variables based on the branch
   ENVIRONMENT: ${{ github.ref == 'refs/heads/dev' && 'dev' || github.ref == 'refs/heads/qa' && 'qa' || github.ref == 'refs/heads/staging' && 'staging' || github.ref == 'refs/heads/production' && 'production' || 'unknown' }}
   
-  GCP_PROJECT_ID: ${{ github.ref == 'refs/heads/dev' && secrets.GCP_DEV_PROJECT_ID || github.ref == 'refs/heads/qa' && secrets.GCP_QA_PROJECT_ID || github.ref == 'refs/heads/staging' && secrets.GCP_STAGING_PROJECT_ID || github.ref == 'refs/heads/production' && secrets.GCP_PRODUCTION_PROJECT_ID || 'unknown' }}
-  GCP_SA_KEY: ${{ github.ref == 'refs/heads/dev' && secrets.GCP_DEV_SA_KEY || github.ref == 'refs/heads/qa' && secrets.GCP_QA_SA_KEY || github.ref == 'refs/heads/staging' && secrets.GCP_STAGING_SA_KEY || github.ref == 'refs/heads/production' && secrets.GCP_PRODUCTION_SA_KEY || 'unknown' }}
+  GCP_PROJECT_ID: ${{ github.ref == 'refs/heads/dev' && secrets.GCP_DEV_PROJECT_ID || github.ref == 'refs/heads/qa' && secrets.GCP_QA_PROJECT_ID || github.ref == 'refs/heads/staging' && secrets.GCP_STAGING_PROJECT_ID || github.ref == 'refs/heads/production' && secrets.GCP_PRODUCTION_PROJECT_ID }}
+  GCP_SA_KEY: ${{ github.ref == 'refs/heads/dev' && secrets.GCP_DEV_SA_KEY || github.ref == 'refs/heads/qa' && secrets.GCP_QA_SA_KEY || github.ref == 'refs/heads/staging' && secrets.GCP_STAGING_SA_KEY || github.ref == 'refs/heads/production' && secrets.GCP_PRODUCTION_SA_KEY }}
   
-  CLUSTER_NAME: ${{ github.ref == 'refs/heads/dev' && secrets.DEV_CLUSTER_NAME|| github.ref == 'refs/heads/qa' && secrets.CLUSTER_NAME_QA || github.ref == 'refs/heads/staging' && secrets.CLUSTER_NAME_STAGING || github.ref == 'refs/heads/production' && secrets.CLUSTER_NAME_PRODUCTION || 'unknown' }}  # Conditional for cluster name
-  CLUSTER_ZONE: ${{ github.ref == 'refs/heads/dev' && secrets.DEV_CLUSTER_ZONE || github.ref == 'refs/heads/qa' && secrets.CLUSTER_ZONE_QA || github.ref == 'refs/heads/staging' && secrets.CLUSTER_ZONE_STAGING || github.ref == 'refs/heads/production' && secrets.CLUSTER_ZONE_PRODUCTION || 'unknown' }}  # Conditional for cluster zone
+  CLUSTER_NAME: ${{ github.ref == 'refs/heads/dev' && secrets.DEV_CLUSTER_NAME|| github.ref == 'refs/heads/qa' && secrets.CLUSTER_NAME_QA || github.ref == 'refs/heads/staging' && secrets.CLUSTER_NAME_STAGING || github.ref == 'refs/heads/production' && secrets.CLUSTER_NAME_PRODUCTION }}  # Conditional for cluster name
+  CLUSTER_ZONE: ${{ github.ref == 'refs/heads/dev' && secrets.DEV_CLUSTER_ZONE || github.ref == 'refs/heads/qa' && secrets.CLUSTER_ZONE_QA || github.ref == 'refs/heads/staging' && secrets.CLUSTER_ZONE_STAGING || github.ref == 'refs/heads/production' && secrets.CLUSTER_ZONE_PRODUCTION  }}  # Conditional for cluster zone
   PAT_GITHUB: ${{ secrets.PAT_GITHUB }}
 
 jobs:
+  validate-env:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate environment variables
+        run: |
+          if [ -z "${{ env.GCP_PROJECT_ID }}" ]; then
+            echo "GCP_PROJECT_ID is not set"; exit 1;
+          fi
+          if [ -z "${{ env.GCP_SA_KEY }}" ]; then
+            echo "GCP_SA_KEY is not set"; exit 1;
+          fi
+          if [ -z "${{ env.CLUSTER_NAME }}" ]; then
+            echo "CLUSTER_NAME is not set"; exit 1;
+          fi
+          if [ -z "${{ env.CLUSTER_ZONE }}" ]; then
+            echo "CLUSTER_ZONE is not set"; exit 1;
+          fi
+          if [ -z "${{ env.PAT_GITHUB }}" ]; then
+            echo "PAT_GITHUB is not set"; exit 1;
+          fi
+      - name: Validation successful
+        run: echo "All required environment variables are set!"
+
   checkout:
     runs-on: ubuntu-latest
+    needs: validate-env
     steps:
       - name: Checkout code
         uses: actions/checkout@v3  # Step to checkout the code from the repository
