@@ -322,7 +322,7 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: |
           curl -X POST -H 'Content-type: application/json' --data '{
-            "text": "Hi Team,\n\nThe GitHub Actions pipeline for branch *${{ github.ref_name }}* has completed successfully.\n\n*Details:*\n- Repository: *${{ github.repository }}*\n- Workflow: *${{ github.workflow }}*\n- Job ID: *${{ github.run_id }}*\n- Run Number: *${{ github.run_number }}*\n- Completed at: *${{ env.date }} IST*\n\nRegards,\nGitHub Actions",
+            "text": "Hi Team,\n\nThe GitHub Actions pipeline for branch *${{ github.ref_name }}* has completed successfully.\n\n*Details:*\n- Repository: *${{ github.repository }}*\n- Workflow: *${{ github.workflow }}*\n- Committer: *${{ github.actor }}*\n- Commit ID: *${{ github.sha }}*\n- Job ID: *${{ github.run_id }}*\n- Run Number: *${{ github.run_number }}*\n- Completed at: *${{ env.date }} IST*\n\nRegards,\nGitHub Actions",
             "username": "GitHub Actions",
             "icon_emoji": ":rocket:"
           }' $SLACK_WEBHOOK_URL
