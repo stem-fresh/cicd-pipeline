@@ -250,6 +250,7 @@ jobs:
   email-notification:
     runs-on: ubuntu-latest
     if: ${{ failure() }}
+    needs: [build-docker-image, push-docker-image, update-manifest, deploy-to-gke]
     steps:
       - name: Get current date and time
         id: date
