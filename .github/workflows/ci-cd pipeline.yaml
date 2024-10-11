@@ -307,18 +307,26 @@ jobs:
 
   slack-notification:
     runs-on: ubuntu-latest
-    needs: email-notification  # Depends on the successful completion of email-notification
-    if: success()  # Only runs if the previous jobs succeed
+    needs: email-notification  # Depends on the email-notification job
+    if: success()  # Only runs if all previous jobs succeed
     steps:
-      - name: Send Slack notification on successful completion
+      - name: Get current date and time in IST
+        id: date
+        run: |
+          # Set the timezone to IST and get the current date and time
+          export TZ="Asia/Kolkata"
+          echo "date=$(date '+%Y-%m-%d %H:%M:%S %Z')" >> $GITHUB_ENV
+
+      - name: Send Slack notification using GitHub webhook
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: |
           curl -X POST -H 'Content-type: application/json' --data '{
-            "text": "The GitHub Actions pipeline for branch *${{ github.ref_name }}* has completed successfully.\n\n*Details:*\n- Repository: *${{ github.repository }}*\n- Workflow: *${{ github.workflow }}*\n- Job ID: *${{ github.run_id }}*\n- Run Number: *${{ github.run_number }}*\n- Completed at: *${{ env.date }}*",
+            "text": "Hi Team,\n\nThe GitHub Actions pipeline for branch *${{ github.ref_name }}* has completed successfully.\n\n*Details:*\n- Repository: *${{ github.repository }}*\n- Workflow: *${{ github.workflow }}*\n- Job ID: *${{ github.run_id }}*\n- Run Number: *${{ github.run_number }}*\n- Completed at: *${{ env.date }} IST*\n\nRegards,\nGitHub Actions",
             "username": "GitHub Actions",
             "icon_emoji": ":rocket:"
           }' $SLACK_WEBHOOK_URL
+
 
 
 
