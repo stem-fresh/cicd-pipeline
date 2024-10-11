@@ -246,6 +246,39 @@ jobs:
         run: |
           # Removing unused Docker images to free up space
           docker image prune -a --force || true
+  
+  email-notification:
+    runs-on: ubuntu-latest
+    if: ${{ failure() }}
+    steps:
+      - name: Get current date and time
+        id: date
+        run: echo "date=$(date)" >> $GITHUB_ENV
+
+      - name: Send email notification on successful completion
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          username: "dineshsai14211@gmail.com"
+          password: ${{ secrets.EMAIL_PASSWORD }}
+          subject: "CI/CD Pipeline Completed Successfully"
+          body: |
+            Hi Team,
+
+            The GitHub Actions pipeline for branch ${{ github.ref_name }} has completed successfully.
+            Here are the details:
+            - Repository: ${{ github.repository }}
+            - Workflow: ${{ github.workflow }}
+            - Job ID: ${{ github.run_id }}
+            - Run Number: ${{ github.run_number }}
+            - Completed at: ${{ env.date }}
+
+            Regards,
+            GitHub Actions
+          to: "dineshsai14211@gmail.com, thestemfresh@gmail.com"
+          from: "dineshsai14211@gmail.com"
+          secure: true
 
 
 
