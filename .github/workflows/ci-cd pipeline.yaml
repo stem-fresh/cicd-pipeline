@@ -115,48 +115,38 @@ jobs:
 
   push-docker-image:
     runs-on: ubuntu-latest
-    needs: build-docker-image  # Depends on the build-docker-image job
+    needs: build-docker-image
     steps:
       - name: Download Docker image
         uses: actions/download-artifact@v3
         with:
-          name: docker-image  # Downloading the Docker image artifact
+          name: docker-image
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2  # Setting up Docker Buildx again
+      - name: Set up Google Cloud SDK
+        run: |
+          echo "Installing Google Cloud SDK..."
+          echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] http://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
+          curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg
+          sudo apt-get update && sudo apt-get install -y google-cloud-sdk
 
       - name: Authenticate with Google Cloud
-        uses: google-github-actions/auth@v1  # Authenticating with Google Cloud using service account key
+        id: auth
+        uses: google-github-actions/auth@v1
         with:
-          credentials_json: ${{env.GCP_SA_KEY}}
-      
-      - name: Install Google Cloud SDK
-        run: |
-          # Update package list and install dependencies
-          sudo apt-get update && sudo apt-get install -y apt-transport-https ca-certificates gnupg
-
-          # Import the Google Cloud public GPG key to a keyring file
-          curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo tee /usr/share/keyrings/cloud.google.gpg >/dev/null
-
-          # Add the Google Cloud SDK distribution URI as a package source, referencing the keyring
-          # Replace 'cloud-sdk main' with 'cloud-sdk jammy main' if 'noble' is not supported
-          echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee /etc/apt/sources.list.d/google-cloud-sdk.list
-
-          # Update the package list to include packages from the new repository
-          sudo apt-get update
-
-          # Install the Google Cloud SDK
-          sudo apt-get install -y google-cloud-sdk
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
 
       - name: Configure Docker to use gcloud as a credential helper
-        run: gcloud auth configure-docker  # Configuring Docker to use gcloud for authentication
+        run: |
+          gcloud auth configure-docker || echo "Failed to configure Docker!"
+
+      - name: Check Docker config
+        run: cat ~/.docker/config.json
 
       - name: Load Docker image from artifact
-        run: docker load -i ./${{ env.DOCKER_TAR }}  # Loading the Docker image from the tar file
+        run: docker load -i ./${{ env.DOCKER_TAR }}
 
       - name: Tag and Push Docker image to GCR
         run: |
-          # Tagging the Docker image with the build number and pushing to GCR
           docker tag gcr.io/$GCP_PROJECT_ID/$GCR_REPO_NAME/$DOCKER_IMG_NAME:${{ github.run_number }} \
           gcr.io/$GCP_PROJECT_ID/$GCR_REPO_NAME/$DOCKER_IMG_NAME:${{ github.run_number }}
           docker push gcr.io/$GCP_PROJECT_ID/$GCR_REPO_NAME/$DOCKER_IMG_NAME:${{ github.run_number }}
