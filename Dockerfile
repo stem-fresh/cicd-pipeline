@@ -28,7 +28,7 @@ RUN chown -R irys:irys /app
 USER 1025
 
 # Expose the application port
-EXPOSE 3000
+EXPOSE 3005
 
 # Start the Node.js application
 CMD ["npm", "start"]

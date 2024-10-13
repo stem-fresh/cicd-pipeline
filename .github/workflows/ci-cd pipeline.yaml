@@ -175,17 +175,17 @@ jobs:
 
     steps:
       - name: Checkout manifest repository
-        uses: actions/checkout@v3  # Checking out the Kubernetes manifest repository
+        uses: actions/checkout@v3
         with:
-          repository: stem-fresh/React-app-manifests  # Specify the repository for the Kubernetes manifests
-          token: ${{ env.PAT_GITHUB }}  # Using a personal access token for authentication
+          repository: stem-fresh/React-app-manifests
+          token: ${{ secrets.PAT_GITHUB }}  # Using a personal access token for authentication
           persist-credentials: false
           ref: ${{ github.ref_name }}
  
       - name: Authenticate with Google Cloud
-        uses: google-github-actions/auth@v1  # Authenticating with Google Cloud
+        uses: google-github-actions/auth@v1
         with:
-          credentials_json: ${{env.GCP_SA_KEY}}
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
 
       - name: Set up Google Cloud CLI
         uses: google-github-actions/setup-gcloud@v1
@@ -197,6 +197,11 @@ jobs:
         run: |
           # Configuring kubectl to interact with the GKE cluster
           gcloud container clusters get-credentials $CLUSTER_NAME --zone $CLUSTER_ZONE --project $GCP_PROJECT_ID
+      
+      - name: Install Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: v3.10.0
 
       - name: Install cert-manager
         run: |
@@ -208,31 +213,26 @@ jobs:
           # Install NGINX Ingress Controller from the official manifest
           kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml
       
-      - name: Create Namespace
-        run: kubectl apply -f name_space.yaml
 
-      - name: Apply Cert-Manager Resources
+      - name: Install Prometheus and Grafana
         run: |
-          kubectl apply -f issuer.yaml
-          kubectl apply -f certificate.yaml
+          # Create the monitoring namespace if it doesn't exist
+          kubectl create namespace monitoring --dry-run=client -o yaml | kubectl apply -f -
 
-      - name: Apply Application Resources
-        run: |
-          kubectl apply -f deployment.yaml
-          kubectl apply -f service.yaml
-          kubectl apply -f hpa.yaml
-      
-      - name: Apply Ingress Resources
-        run: |
-          kubectl apply -f ingress.yaml
-          
-      - name: Wait for Deployment to Complete
-        if: failure()
-        run: kubectl rollout status deployment/${{ secrets.DEPLOYMENT_NAME }} --timeout=120s  # Waiting for the deployment to complete
+          # Add the Prometheus Helm repo and update it
+          helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+          helm repo update
 
-      - name: Rollback if Deployment Fails
-        if: failure()
-        run: kubectl rollout undo deployment/${{ secrets.DEPLOYMENT_NAME }}  # Rolling back the deployment if it fails
+          # Install the Prometheus and Grafana stack using kube-prometheus-stack
+          helm install monitoring prometheus-community/kube-prometheus-stack -n monitoring
+
+      - name: Install ArgoCD
+        run: |
+          # Create the ArgoCD namespace if it doesn't exist
+          kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -
+
+          # Install ArgoCD using the provided manifest file
+          kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 
   cleanup:
     runs-on: ubuntu-latest
@@ -247,92 +247,4 @@ jobs:
           # Removing unused Docker images to free up space
           docker image prune -a --force || true
   
-  notify-success:
-    runs-on: ubuntu-latest
-    needs: [deploy-to-gke]  # List all jobs that must complete before this one
-    if: success()  # This job only runs if all previous jobs succeed
-    steps:
-      - name: Get current date and time
-        id: date
-        run: echo "date=$(date)" >> $GITHUB_ENV
-
-      - name: Send email notification on successful completion
-        uses: dawidd6/action-send-mail@v3
-        with:
-          server_address: smtp.gmail.com
-          server_port: 465
-          username: "dineshsai14211@gmail.com"
-          password: ${{ secrets.EMAIL_PASSWORD }}
-          subject: "CI/CD Pipeline Completed Successfully"
-          body: |
-            Hi Team,
-
-            The GitHub Actions pipeline for branch ${{ github.ref_name }} has completed successfully.
-            Here are the details:
-            - Repository: ${{ github.repository }}
-            - Workflow: ${{ github.workflow }}
-            - Job ID: ${{ github.run_id }}
-            - Run Number: ${{ github.run_number }}
-            - Completed at: ${{ env.date }}
-
-            Regards,
-            GitHub Actions
-          to: "dineshsai14211@gmail.com, thestemfresh@gmail.com"
-          from: "dineshsai14211@gmail.com"
-          secure: true
   
-  notify-failure:
-    runs-on: ubuntu-latest
-    needs: [deploy-to-gke,update-manifest]  # List all jobs that must complete before this one
-    if: failure()  # This job only runs if any of the previous jobs fail
-    steps:
-      - name: Send Failure Email
-        uses: dawidd6/action-send-mail@v3
-        with:
-          server_address: smtp.gmail.com
-          server_port: 465
-          username: "dineshsai14211@gmail.com"
-          password: ${{ secrets.EMAIL_PASSWORD }}
-          subject: "CI/CD Pipeline Failed: ${{ github.workflow }}"
-          to: "groupemail@example.com, another@example.com"
-          from: ${{ secrets.EMAIL_USER }}
-          body: |
-            The pipeline encountered a failure in one of the stages.
-            Repository: ${{ github.repository }}
-            Branch: ${{ github.ref_name }}
-            Workflow: ${{ github.workflow }}
-            Run ID: ${{ github.run_id }}
-            Run Number: ${{ github.run_number }}
-            Please check the logs for more details.
-
-  slack-notification:
-    runs-on: ubuntu-latest
-    needs: email-notification  # Depends on the email-notification job
-    if: success()  # Only runs if all previous jobs succeed
-    steps:
-      - name: Get current date and time in IST
-        id: date
-        run: |
-          # Set the timezone to IST and get the current date and time
-          export TZ="Asia/Kolkata"
-          echo "date=$(date '+%Y-%m-%d %H:%M:%S %Z')" >> $GITHUB_ENV
-
-      - name: Send Slack notification using GitHub webhook
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-        run: |
-          curl -X POST -H 'Content-type: application/json' --data '{
-            "text": "Hi Team,\n\nThe GitHub Actions pipeline for branch *${{ github.ref_name }}* has completed successfully.\n\n*Details:*\n- Repository: *${{ github.repository }}*\n- Workflow: *${{ github.workflow }}*\n- Committer: *${{ github.actor }}*\n- Commit ID: *${{ github.sha }}*\n- Job ID: *${{ github.run_id }}*\n- Run Number: *${{ github.run_number }}*\n- Completed at: *${{ env.date }} IST*\n\nRegards,\nGitHub Actions",
-            "username": "GitHub Actions",
-            "icon_emoji": ":rocket:"
-          }' $SLACK_WEBHOOK_URL
-
-
-
-
-
-
-
-
-
-      
