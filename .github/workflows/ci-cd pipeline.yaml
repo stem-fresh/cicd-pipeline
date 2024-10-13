@@ -132,14 +132,21 @@ jobs:
       
       - name: Install Google Cloud SDK
         run: |
+          # Update package list and install dependencies
           sudo apt-get update && sudo apt-get install -y apt-transport-https ca-certificates gnupg
-          echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee /etc/apt/sources.list.d/google-cloud-sdk.list
-          curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
-          # Or, for newer Ubuntu versions:
-          # curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo tee /usr/share/keyrings/cloud.google.gpg
-          sudo apt-get update
-          sudo apt-get install -y google-cloud-sdk
 
+          # Import the Google Cloud public GPG key to a keyring file
+          curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo tee /usr/share/keyrings/cloud.google.gpg >/dev/null
+
+          # Add the Google Cloud SDK distribution URI as a package source, referencing the keyring
+          # Replace 'cloud-sdk main' with 'cloud-sdk jammy main' if 'noble' is not supported
+          echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee /etc/apt/sources.list.d/google-cloud-sdk.list
+
+          # Update the package list to include packages from the new repository
+          sudo apt-get update
+
+          # Install the Google Cloud SDK
+          sudo apt-get install -y google-cloud-sdk
 
       - name: Configure Docker to use gcloud as a credential helper
         run: gcloud auth configure-docker  # Configuring Docker to use gcloud for authentication
