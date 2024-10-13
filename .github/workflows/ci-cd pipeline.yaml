@@ -227,12 +227,6 @@ jobs:
           # Install the Prometheus and Grafana stack using kube-prometheus-stack
           helm install monitoring prometheus-community/kube-prometheus-stack -n monitoring
 
-      - name: Wait for Prometheus and Grafana to be ready
-        run: |
-          # Wait for Prometheus and Grafana to be available
-          kubectl wait --for=condition=available --timeout=180s deployment/prometheus-kube-prometheus-prometheus -n monitoring
-          kubectl wait --for=condition=available --timeout=180s deployment/grafana -n monitoring
-
       - name: Install ArgoCD
         run: |
           # Create the ArgoCD namespace if it doesn't exist
