@@ -172,7 +172,6 @@ jobs:
   deploy-to-gke:
     runs-on: ubuntu-latest
     needs: update-manifest  # Depends on the update-manifest job
-
     steps:
       - name: Checkout manifest repository
         uses: actions/checkout@v3
@@ -181,7 +180,7 @@ jobs:
           token: ${{ secrets.PAT_GITHUB }}  # Using a personal access token for authentication
           persist-credentials: false
           ref: ${{ github.ref_name }}
- 
+  
       - name: Authenticate with Google Cloud
         uses: google-github-actions/auth@v1
         with:
@@ -197,7 +196,7 @@ jobs:
         run: |
           # Configuring kubectl to interact with the GKE cluster
           gcloud container clusters get-credentials $CLUSTER_NAME --zone $CLUSTER_ZONE --project $GCP_PROJECT_ID
-      
+        
       - name: Install Helm
         uses: azure/setup-helm@v3
         with:
@@ -207,12 +206,11 @@ jobs:
         run: |
           # Installing cert-manager
           kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.10.0/cert-manager.yaml
-      
+        
       - name: Install NGINX Ingress Controller
         run: |
           # Install NGINX Ingress Controller from the official manifest
           kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml
-      
 
       - name: Install Prometheus and Grafana
         run: |
@@ -226,13 +224,29 @@ jobs:
           # Install the Prometheus and Grafana stack using kube-prometheus-stack
           helm install monitoring prometheus-community/kube-prometheus-stack -n monitoring
 
+      - name: Wait for Prometheus and Grafana to be ready
+        run: |
+          # Wait for Prometheus and Grafana to be available
+          kubectl wait --for=condition=available --timeout=180s deployment/prometheus-kube-prometheus-prometheus -n monitoring
+          kubectl wait --for=condition=available --timeout=180s deployment/grafana -n monitoring
+
       - name: Install ArgoCD
         run: |
           # Create the ArgoCD namespace if it doesn't exist
           kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -
 
           # Install ArgoCD using the provided manifest file
-          kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+          kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml  
+
+      - name: Wait for ArgoCD to be ready
+        run: |
+          # Wait for ArgoCD server to be up and running
+          kubectl wait --for=condition=available --timeout=180s deployment/argocd-server -n argocd
+
+      - name: Apply ArgoCD Application Manifest
+        run: |
+          # Apply the ArgoCD application configuration
+          kubectl apply -f argocd_deploy.yaml
 
   cleanup:
     runs-on: ubuntu-latest
