@@ -215,18 +215,6 @@ jobs:
           # Install NGINX Ingress Controller from the official manifest
           kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml
 
-      - name: Install Prometheus and Grafana
-        run: |
-          # Create the monitoring namespace if it doesn't exist
-          kubectl create namespace monitoring --dry-run=client -o yaml | kubectl apply -f -
-
-          # Add the Prometheus Helm repo and update it
-          helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-          helm repo update
-
-          # Install the Prometheus and Grafana stack using kube-prometheus-stack
-          helm install monitoring prometheus-community/kube-prometheus-stack -n monitoring
-
       - name: Install ArgoCD
         run: |
           # Create the ArgoCD namespace if it doesn't exist
